@@ -8,13 +8,15 @@ Hybrid conversion of `index5.html` (ES) and `index5Eng.html` (EN) from
 | `santa-convocacion-2026-es.json` | santaconvocacionlldm.org | category **11**, 178 posts |
 | `holy-supper-2026-en.json` | holysupper.org | category **2**, 96 posts |
 
-Each template is three sections:
+Each template is three sections, plus a fourth on the English one:
 
 1. **Hero** — full-height background, pretitle, title, poster image, "Video"
    button, social icons. All native Elementor widgets.
 2. **News** — a heading widget plus one HTML widget carrying the live
    `/wp-json/wp/v2/posts` feed (markup + CSS + JS).
-3. **Footer** — copyright line.
+3. **Instagram gallery** (EN only) — one HTML widget carrying `ig-gallery.html`,
+   a 12-tile grid with a lightbox that reads `/wp-json/wp/v2/media`. See below.
+4. **Footer** — copyright line.
 
 ## Install
 
@@ -35,6 +37,26 @@ Each template is three sections:
 
 4. Set the page's template to **Elementor Full Width** or **Canvas** so the
    hero runs edge to edge.
+
+## The Instagram gallery
+
+`ig-gallery.html` is a vendored copy of the block maintained in the sync bot's
+repo (`lldm-fb-sync/gallery/holysupper-ig-gallery.html`) — copied so this build
+has no dependency on a path outside the repo. **If you change one, diff the
+other.** `build_templates.py` strips its header comment and rewrites the
+`data-` attributes from the template's `gallery` config.
+
+It renders whatever `lldm-fb-sync`'s hourly `sync-ig-gallery` cron has put in
+that site's own Media Library — media items titled `igfeed-<instagram id>`, at
+present 24 photos from `@holysuppertlotw`. Nothing is hotlinked from Instagram,
+and the section **hides itself** when the feed is empty or unreachable. That is
+also why its heading lives inside the HTML widget rather than in an Elementor
+heading widget above it: a native heading would outlive the gallery and leave a
+title standing over nothing.
+
+Only the English template has a `gallery` key. santaconvocacionlldm.org has no
+synced photos, so the same block there would ship a section that never appears;
+adding the key is all it takes once that site is synced.
 
 ## Things worth knowing
 
@@ -77,6 +99,13 @@ Each template is three sections:
 ## Regenerating
 
 `build_templates.py` rebuilds both JSON files from a fresh clone of the repo
-(expects `./SantaCena/`). `test_feed.js` runs the generated HTML widget in
-jsdom against the live WordPress REST API and asserts cards render — it needs
-`npm install jsdom`.
+(expects `./SantaCena/`, gitignored) and writes them to `out/`; copy the ones
+you want over the tracked files at the top level. Every element id is random,
+so a rebuild always shows a whole-file diff — compare with ids normalised
+before assuming anything actually changed.
+
+`test_feed.js` mounts the generated HTML widgets in jsdom against the live
+WordPress REST API and asserts both the news cards and the gallery tiles
+render — it needs `npm install jsdom`. Note jsdom's `getComputedStyle` does
+**not** cascade reliably across several stylesheets; it disagreed with Chrome
+on this page. Use a real browser for any layout question.

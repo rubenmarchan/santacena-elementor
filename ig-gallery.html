@@ -1,0 +1,382 @@
+<!--
+  Instagram gallery section for holysupper.org.
+
+  VENDORED COPY. The original lives in the sync bot's repo at
+  lldm-fb-sync/gallery/holysupper-ig-gallery.html, next to the job that keeps
+  the Media Library stocked. It is copied here so build_templates.py has no
+  dependency on a path outside this repo; if you change one, diff the other.
+  build_templates.py strips this comment and rewrites the data- attributes
+  from the template's `gallery` config before embedding it in an HTML widget.
+
+  Paste the whole block into an Elementor **HTML widget**, or drop it into a
+  plain HTML page. Self-contained: no build step, no external scripts, no
+  jQuery, no Instagram embed.js. It reads the site's own Media Library, which
+  igGallery.js keeps stocked with recent Instagram photos.
+
+  It renders nothing at all if the feed is empty or unreachable, so a broken
+  API or an expired token leaves a clean page rather than an empty box.
+
+  Two things worth knowing before editing:
+   - Every class is prefixed `hsig-` and all sizing is px/em, never rem. The
+     source CSS these pages came from assumed html{font-size:62.5%} (1rem =
+     10px); the Elementor port dropped that, so rem here would size wrongly
+     depending on which page it landed on.
+   - Config lives in the `data-` attributes on the section below, so the same
+     block works on another site by editing markup only. On a page served from
+     another domain (the static SantaCena pages on github.io, say) make
+     data-endpoint absolute: https://holysupper.org/wp-json/wp/v2/media.
+     WordPress answers the REST API with Access-Control-Allow-Origin echoing
+     the caller, so the cross-origin read works — verified 2026-08-06.
+-->
+
+<section class="hsig"
+         data-endpoint="/wp-json/wp/v2/media"
+         data-marker="igfeed"
+         data-count="12"
+         data-profile="https://www.instagram.com/holysuppertlotw/"
+         data-heading="Follow us on Instagram"
+         data-cta="View on Instagram"
+         hidden>
+
+  <div class="hsig-inner">
+    <header class="hsig-head">
+      <h2 class="hsig-title"></h2>
+      <a class="hsig-handle" target="_blank" rel="noopener"></a>
+    </header>
+
+    <ul class="hsig-grid" role="list"></ul>
+  </div>
+
+  <!-- Lightbox. Kept in the DOM (not built on demand) so the markup is
+       reviewable in Elementor and so opening a tile costs no layout work. -->
+  <div class="hsig-lb" role="dialog" aria-modal="true" aria-label="Instagram post" hidden>
+    <button class="hsig-lb-close" type="button" aria-label="Close">&times;</button>
+    <button class="hsig-lb-nav hsig-lb-prev" type="button" aria-label="Previous">&#8249;</button>
+    <button class="hsig-lb-nav hsig-lb-next" type="button" aria-label="Next">&#8250;</button>
+    <figure class="hsig-lb-fig">
+      <img class="hsig-lb-img" alt="">
+      <figcaption class="hsig-lb-cap">
+        <p class="hsig-lb-text"></p>
+        <a class="hsig-lb-link" target="_blank" rel="noopener"></a>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<style>
+.hsig{--hsig-gap:10px;--hsig-cols:4;--hsig-fg:#1a1a1a;--hsig-muted:#6b6b6b;--hsig-accent:#b8860b;
+  display:block;padding:56px 0;color:var(--hsig-fg);
+  font-family:inherit;-webkit-font-smoothing:antialiased}
+.hsig[hidden]{display:none}
+.hsig-inner{max-width:1180px;margin:0 auto;padding:0 20px;box-sizing:border-box}
+
+.hsig-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;
+  gap:8px;margin:0 0 24px}
+.hsig-title{margin:0;font-size:30px;line-height:1.2;font-weight:600;letter-spacing:.01em}
+.hsig-handle{font-size:15px;color:var(--hsig-accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s}
+.hsig-handle:hover,.hsig-handle:focus-visible{border-bottom-color:currentColor}
+
+.hsig-grid{display:grid;grid-template-columns:repeat(var(--hsig-cols),1fr);gap:var(--hsig-gap);
+  margin:0;padding:0;list-style:none}
+.hsig-cell{position:relative;margin:0;padding:0}
+
+/* Square tiles without depending on aspect-ratio support: the padding box
+   gives the height, the image is absolutely positioned inside it.
+   Several declarations below look redundant on a bare page and are not: they
+   defend against a theme's global `button {}` rule. Measured in Chrome against
+   the StyleShout stylesheet the SantaCena pages use, a tile without them picks
+   up 36px of side padding, a 16px bottom margin — which shows, because it adds
+   to the row gap and leaves the grid spaced unevenly — and .35em letter-
+   spacing. A class outranks an element selector, so restating the properties
+   here is enough; !important is not needed. */
+.hsig-tile{display:block;position:relative;box-sizing:border-box;
+  width:100%;height:auto;min-width:0;padding:100% 0 0;margin:0;overflow:hidden;
+  border:0;background:#ececec;cursor:pointer;border-radius:2px;
+  font-family:inherit;letter-spacing:normal;text-transform:none}
+.hsig-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  display:block;margin:0;transition:transform .45s ease,opacity .3s ease;opacity:0}
+.hsig-tile img.is-ready{opacity:1}
+.hsig-tile:hover img,.hsig-tile:focus-visible img{transform:scale(1.05)}
+.hsig-tile:focus-visible{outline:2px solid var(--hsig-accent);outline-offset:2px}
+
+/* Type badge for reels and carousels — a plain still gives no hint that
+   there's video or more photos behind the tile. */
+.hsig-badge{position:absolute;top:8px;right:8px;width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));pointer-events:none}
+.hsig-badge svg{width:100%;height:100%;fill:currentColor}
+
+.hsig-lb{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.92);padding:24px;box-sizing:border-box}
+.hsig-lb[hidden]{display:none}
+.hsig-lb-fig{margin:0;max-width:900px;max-height:100%;display:flex;flex-direction:column;gap:14px}
+.hsig-lb-img{max-width:100%;max-height:72vh;object-fit:contain;display:block;margin:0 auto;border-radius:2px}
+.hsig-lb-cap{color:#f2f2f2;text-align:center;max-width:640px;margin:0 auto}
+.hsig-lb-text{margin:0 0 10px;font-size:15px;line-height:1.55;white-space:pre-wrap;
+  max-height:22vh;overflow-y:auto}
+.hsig-lb-link{display:inline-block;font-size:14px;color:#fff;text-decoration:none;
+  border:1px solid rgba(255,255,255,.55);border-radius:2px;padding:7px 16px;transition:background .15s}
+.hsig-lb-link:hover,.hsig-lb-link:focus-visible{background:rgba(255,255,255,.14)}
+/* Same defence as .hsig-tile — these are buttons too. */
+.hsig-lb-close,.hsig-lb-nav{position:absolute;box-sizing:border-box;background:none;border:0;
+  color:#fff;cursor:pointer;width:auto;height:auto;min-width:0;line-height:1;padding:12px;margin:0;
+  font-family:inherit;letter-spacing:normal;opacity:.75;transition:opacity .15s}
+.hsig-lb-close:hover,.hsig-lb-nav:hover,
+.hsig-lb-close:focus-visible,.hsig-lb-nav:focus-visible{opacity:1}
+.hsig-lb-close{top:8px;right:12px;font-size:38px}
+.hsig-lb-nav{top:50%;transform:translateY(-50%);font-size:54px}
+.hsig-lb-prev{left:4px}
+.hsig-lb-next{right:4px}
+
+@media (max-width:900px){.hsig{--hsig-cols:3}.hsig-title{font-size:25px}}
+@media (max-width:560px){.hsig{--hsig-cols:2;--hsig-gap:7px;padding:38px 0}
+  .hsig-lb-nav{font-size:40px}.hsig-lb-text{max-height:16vh}}
+
+@media (prefers-reduced-motion:reduce){
+  .hsig-tile img{transition:opacity .3s ease}
+  .hsig-tile:hover img,.hsig-tile:focus-visible img{transform:none}}
+</style>
+
+<script>
+(function () {
+  var root = document.currentScript
+    ? document.currentScript.parentNode.querySelector('.hsig')
+    : document.querySelector('.hsig');
+  if (!root || root.dataset.hsigInit) return;
+  root.dataset.hsigInit = '1';
+
+  var cfg = {
+    endpoint: root.dataset.endpoint || '/wp-json/wp/v2/media',
+    marker:   root.dataset.marker   || 'igfeed',
+    count:    Math.max(1, Math.min(parseInt(root.dataset.count, 10) || 12, 48)),
+    profile:  root.dataset.profile  || '',
+    heading:  root.dataset.heading  || '',
+    cta:      root.dataset.cta      || 'View on Instagram'
+  };
+
+  var grid  = root.querySelector('.hsig-grid');
+  var lb    = root.querySelector('.hsig-lb');
+  var lbImg = root.querySelector('.hsig-lb-img');
+  var lbText= root.querySelector('.hsig-lb-text');
+  var lbLink= root.querySelector('.hsig-lb-link');
+  var items = [];
+  var at    = 0;
+  var lastFocus = null;
+
+  // WordPress's ?search= is a substring match over several fields, so the
+  // response is a superset of the gallery. The real set is whatever has a
+  // title of exactly `<marker>-<instagram id>`, which is what igGallery.js
+  // writes — anything else that merely mentions the marker is discarded.
+  var titleRe = new RegExp('^' + cfg.marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-(\\d+)$');
+
+  var url = cfg.endpoint
+    + (cfg.endpoint.indexOf('?') === -1 ? '?' : '&')
+    + 'search=' + encodeURIComponent(cfg.marker)
+    + '&per_page=' + Math.min(cfg.count * 2, 100)
+    + '&orderby=date&order=desc'
+    + '&_fields=' + encodeURIComponent('id,title,caption,description,alt_text,source_url,media_details');
+
+  fetch(url, { credentials: 'omit' })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); })
+    .then(render)
+    .catch(function () { /* leave the section hidden — see the file header */ });
+
+  function render(rows) {
+    items = (rows || [])
+      .map(toItem)
+      .filter(Boolean)
+      // Newest first by Instagram id: WordPress orders by upload date, and on
+      // a first run every photo is uploaded in the same minute, which leaves
+      // the true order down to a tie-break we don't control.
+      .sort(function (a, b) { return a.igId < b.igId ? 1 : a.igId > b.igId ? -1 : 0; })
+      .slice(0, cfg.count);
+
+    if (!items.length) return;
+
+    var heading = root.querySelector('.hsig-title');
+    if (cfg.heading) heading.textContent = cfg.heading; else heading.remove();
+
+    var handle = root.querySelector('.hsig-handle');
+    if (cfg.profile) { handle.href = cfg.profile; handle.textContent = cfg.cta; }
+    else handle.remove();
+
+    var frag = document.createDocumentFragment();
+    items.forEach(function (item, i) { frag.appendChild(cell(item, i)); });
+    grid.appendChild(frag);
+
+    root.hidden = false;
+    wireLightbox();
+  }
+
+  function toItem(row) {
+    var title = row && row.title && (row.title.rendered || row.title.raw) || '';
+    var m = String(title).trim().match(titleRe);
+    if (!m || !row.source_url) return null;
+
+    // description holds the permalink on its own first line, plus optional
+    // `video` / `carousel:N` markers — see buildDescription in igGallery.js.
+    var meta  = stripHtml(row.description && row.description.rendered || '');
+    var lines = meta.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+    // Matched on instagram.com specifically rather than "the first line that
+    // looks like a URL": WordPress prepends its own attachment markup to
+    // description.rendered, and anything it ever contributes here must not be
+    // mistaken for the permalink.
+    var link  = repairDashes(lines.filter(isInstagramUrl)[0] || '');
+
+    return {
+      igId:     m[1],
+      full:     row.source_url,
+      thumb:    sizedUrl(row, ['medium_large', 'medium', 'thumbnail']) || row.source_url,
+      srcset:   buildSrcset(row),
+      alt:      row.alt_text || '',
+      caption:  stripHtml(row.caption && row.caption.rendered || ''),
+      link:     link,
+      isVideo:  lines.indexOf('video') !== -1,
+      carousel: lines.some(function (l) { return l.indexOf('carousel:') === 0; })
+    };
+  }
+
+  function isInstagramUrl(line) {
+    return /^https?:\/\/(?:www\.)?instagram\.com\/(?:p|reel|reels|tv)\//i.test(line);
+  }
+
+  // WordPress runs wptexturize over description.rendered, which rewrites a
+  // literal "--" as an en dash and "---" as an em dash. Instagram shortcodes
+  // are [A-Za-z0-9_-], so a dash character inside a permalink can only have
+  // come from that filter and reversing it is unambiguous. Seen live on
+  // holysupper.org: C--qQ4muM1- was stored correctly and served back as
+  // C&#8211;qQ4muM1-, which is a 404 on Instagram.
+  function repairDashes(url) {
+    return url.replace(/—/g, '---').replace(/–/g, '--');
+  }
+
+  function sizes(row) {
+    return (row.media_details && row.media_details.sizes) || {};
+  }
+
+  function sizedUrl(row, preference) {
+    var s = sizes(row);
+    for (var i = 0; i < preference.length; i++) {
+      if (s[preference[i]] && s[preference[i]].source_url) return s[preference[i]].source_url;
+    }
+    return null;
+  }
+
+  // Lets the browser pick a tile-sized derivative instead of pulling the
+  // full-resolution upload for a thumbnail that is never wider than ~300px.
+  function buildSrcset(row) {
+    var s = sizes(row);
+    var out = [];
+    Object.keys(s).forEach(function (k) {
+      if (k === 'full') return;
+      if (s[k] && s[k].source_url && s[k].width) out.push(s[k].source_url + ' ' + s[k].width + 'w');
+    });
+    return out.join(', ');
+  }
+
+  function cell(item, index) {
+    var li = document.createElement('li');
+    li.className = 'hsig-cell';
+
+    var btn = document.createElement('button');
+    btn.className = 'hsig-tile';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', item.alt || 'Open Instagram post');
+
+    var img = document.createElement('img');
+    // setAttribute rather than the properties: `loading` and `decoding` are
+    // reflected inconsistently (jsdom doesn't implement them at all), and a
+    // lazy-loading hint that silently doesn't apply would mean every tile
+    // fetches up front.
+    img.setAttribute('src', item.thumb);
+    if (item.srcset) {
+      img.setAttribute('srcset', item.srcset);
+      img.setAttribute('sizes', '(max-width:560px) 50vw, (max-width:900px) 33vw, 25vw');
+    }
+    img.setAttribute('alt', item.alt);
+    img.setAttribute('loading', 'lazy');
+    img.setAttribute('decoding', 'async');
+    // Fade in only once decoded, so a slow connection shows the placeholder
+    // rather than a half-painted image.
+    if (img.complete) img.classList.add('is-ready');
+    else img.addEventListener('load', function () { img.classList.add('is-ready'); });
+    // A tile whose file 404s would otherwise sit as a grey square forever.
+    img.addEventListener('error', function () { li.remove(); });
+
+    btn.appendChild(img);
+    if (item.isVideo || item.carousel) btn.appendChild(badge(item));
+    btn.addEventListener('click', function () { open(index); });
+
+    li.appendChild(btn);
+    return li;
+  }
+
+  function badge(item) {
+    var span = document.createElement('span');
+    span.className = 'hsig-badge';
+    span.innerHTML = item.isVideo
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 1H4a2 2 0 0 0-2 2v13h2V3h11V1zm4 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/></svg>';
+    return span;
+  }
+
+  function open(index) {
+    at = index;
+    lastFocus = document.activeElement;
+    paint();
+    lb.hidden = false;
+    document.addEventListener('keydown', onKey);
+    root.querySelector('.hsig-lb-close').focus();
+  }
+
+  function close() {
+    lb.hidden = true;
+    document.removeEventListener('keydown', onKey);
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  function step(delta) {
+    at = (at + delta + items.length) % items.length;
+    paint();
+  }
+
+  function paint() {
+    var item = items[at];
+    lbImg.src = item.full;
+    lbImg.alt = item.alt;
+    lbText.textContent = item.caption;
+    lbText.hidden = !item.caption;
+    if (item.link) { lbLink.href = item.link; lbLink.textContent = cfg.cta; lbLink.hidden = false; }
+    else lbLink.hidden = true;
+
+    var many = items.length > 1;
+    root.querySelector('.hsig-lb-prev').hidden = !many;
+    root.querySelector('.hsig-lb-next').hidden = !many;
+  }
+
+  function onKey(e) {
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') step(-1);
+    else if (e.key === 'ArrowRight') step(1);
+  }
+
+  function wireLightbox() {
+    root.querySelector('.hsig-lb-close').addEventListener('click', close);
+    root.querySelector('.hsig-lb-prev').addEventListener('click', function () { step(-1); });
+    root.querySelector('.hsig-lb-next').addEventListener('click', function () { step(1); });
+    // Backdrop click closes; clicks on the photo or caption must not.
+    lb.addEventListener('click', function (e) { if (e.target === lb) close(); });
+  }
+
+  // WordPress returns caption/description as rendered HTML (wrapped in <p>).
+  // Parsed via the HTML parser rather than a regex so entities come back as
+  // real characters, and through template.content so nothing in it can load
+  // or execute while being read.
+  function stripHtml(html) {
+    if (!html) return '';
+    var t = document.createElement('template');
+    t.innerHTML = html;
+    return (t.content.textContent || '').trim();
+  }
+})();
+</script>

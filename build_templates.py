@@ -3,7 +3,8 @@
 
 Hybrid conversion: hero, headings, poster, button, socials and footer become
 native Elementor widgets; the WordPress news feed stays an HTML widget because
-it is JavaScript that talks to /wp-json.
+it is JavaScript that talks to /wp-json. A template that sets `gallery` gets a
+second HTML widget carrying the Instagram grid from ig-gallery.html.
 
 Output: two importable .json files (Elementor > Templates > Import).
 """
@@ -95,6 +96,30 @@ def feed_js(cfg):
     # pie() links to CFG.sitio; an empty string would render href="".
     js = js.replace("a.href = CFG.sitio;", "a.href = CFG.sitio || '/';")
     return js.strip()
+
+
+def gallery_html(cfg):
+    """The Instagram grid, pointed at the site being built.
+
+    Only its `data-` attributes are configuration — the markup, CSS and script
+    are taken as they are, so this stays a straight copy of the block that
+    lldm-fb-sync maintains rather than a fork. The file's own header comment is
+    install instructions for a human and is dropped; the endpoint keeps its
+    relative default because an Elementor page is served from the same site as
+    the Media Library it reads.
+    """
+    html = (HERE / "ig-gallery.html").read_text(encoding="utf-8")
+    html = re.sub(r"\A<!--.*?-->\s*", "", html, flags=re.S)
+
+    for attr, value in cfg["gallery"].items():
+        pattern = f'data-{attr}="[^"]*"'
+        if not re.search(pattern, html):
+            raise SystemExit(f"ig-gallery.html has no data-{attr} attribute")
+        # A function replacement: URLs in the config would otherwise have their
+        # backslash-and-digit sequences read as group references.
+        html = re.sub(pattern, lambda m: f'data-{attr}="{value}"', html, count=1)
+
+    return html.strip()
 
 
 def widget(kind, settings):
@@ -298,6 +323,22 @@ def build(cfg):
         ],
     )
 
+    # The block brings its own 56px band, max-width and heading, so the section
+    # around it is a bare full-width shell. The heading in particular has to
+    # stay inside the widget: the gallery hides itself when the feed is empty
+    # or unreachable, and an Elementor heading widget above it would survive
+    # that and leave a title over nothing.
+    gallery = section(
+        {
+            "layout": "full_width",
+            "background_background": "classic",
+            "background_color": "#f4f5f5",
+            "padding": {"unit": "px", "top": "0", "right": "0",
+                        "bottom": "0", "left": "0", "isLinked": True},
+        },
+        [widget("html", {"html": gallery_html(cfg)})],
+    ) if cfg.get("gallery") else None
+
     footer = section(
         {
             "layout": "boxed",
@@ -326,7 +367,7 @@ def build(cfg):
         "version": "0.4",
         "title": cfg["title"],
         "type": "page",
-        "content": [hero, news, footer],
+        "content": [s for s in (hero, news, gallery, footer) if s],
         "page_settings": {
             "hide_title": "yes",
             "background_background": "classic",
@@ -351,9 +392,10 @@ ES = {
     "loading": "Cargando publicaciones…",
     "more": "Ver más publicaciones",
     "copyright": "Iglesia La Luz del Mundo | Santa Convocación © Copyright 2026",
+    # No "gallery" key on purpose — see the note on EN below.
     "socials": [
         ("facebook", "https://www.facebook.com/SantaConvocacionLLDM"),
-        ("twitter", "https://x.com/convocacionlldm"),
+        ("x-twitter", "https://x.com/convocacionlldm"),
         ("instagram", "https://www.instagram.com/santaconvocacionlldm/"),
     ],
 }
@@ -374,9 +416,20 @@ EN = {
     "loading": "Loading posts…",
     "more": "See more posts",
     "copyright": "The Light of the World Church | Holy Supper © Copyright 2026",
+    # Reads holysupper.org's own Media Library, which lldm-fb-sync's hourly
+    # sync-ig-gallery cron stocks from @holysuppertlotw. Only this template has
+    # one: santaconvocacionlldm.org has no synced photos, so the same block on
+    # the Spanish page would hide itself and ship a section that never appears.
+    # Adding the same key there is all it would take once that site is synced.
+    "gallery": {
+        "count": 12,
+        "profile": "https://www.instagram.com/holysuppertlotw/",
+        "heading": "Follow us on Instagram",
+        "cta": "View on Instagram",
+    },
     "socials": [
         ("facebook", "https://www.facebook.com/holysupper"),
-        ("twitter", "https://x.com/HolySupperTLOTW"),
+        ("x-twitter", "https://x.com/HolySupperTLOTW"),
         ("instagram", "https://www.instagram.com/holysuppertlotw/"),
     ],
 }
