@@ -352,7 +352,11 @@ def build(cfg):
                 # spacing for small caps; on the mixed-case Cinzel setting it
                 # leaves the words loose.
                 "typography_font_family": cfg["news_font"],
-                "typography_font_size": {"unit": "px", "size": 18},
+                # Matches .hsig-title in the gallery block (30px, 25px on a
+                # narrow screen) so the two section headings read as a pair.
+                "typography_font_size": {"unit": "px", "size": 30},
+                "typography_font_size_mobile": {"unit": "px", "size": 25},
+                "typography_line_height": {"unit": "em", "size": 1.2},
                 "typography_font_weight": "600",
                 "typography_text_transform": cfg["news_transform"],
                 "typography_letter_spacing": {"unit": "em", "size": cfg["news_spacing"]},
