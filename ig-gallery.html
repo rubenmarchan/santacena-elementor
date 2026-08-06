@@ -174,7 +174,7 @@
     + 'search=' + encodeURIComponent(cfg.marker)
     + '&per_page=' + Math.min(cfg.count * 2, 100)
     + '&orderby=date&order=desc'
-    + '&_fields=' + encodeURIComponent('id,title,caption,description,alt_text,source_url,media_details');
+    + '&_fields=' + encodeURIComponent('id,title,date_gmt,caption,description,alt_text,source_url,media_details');
 
   fetch(url, { credentials: 'omit' })
     .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); })
@@ -185,10 +185,20 @@
     items = (rows || [])
       .map(toItem)
       .filter(Boolean)
-      // Newest first by Instagram id: WordPress orders by upload date, and on
-      // a first run every photo is uploaded in the same minute, which leaves
-      // the true order down to a tie-break we don't control.
-      .sort(function (a, b) { return a.igId < b.igId ? 1 : a.igId > b.igId ? -1 : 0; })
+      // Newest first by the date on the attachment, which sync-ig-gallery.js
+      // sets to the Instagram publish time.
+      //
+      // This used to sort by Instagram media id, on the assumption that ids
+      // grow over time. They do not — measured across 24 real items, that put
+      // a 2024-08-26 post first and left the newest post of all out of the
+      // grid entirely, because the slice below then kept the wrong twelve.
+      // An id says nothing about when something was posted.
+      //
+      // WordPress is already asked for this order, so this mostly re-states
+      // it; it matters for items uploaded before the job started stamping
+      // dates, which fall back to their upload time and would otherwise be
+      // interleaved by accident rather than by date.
+      .sort(function (a, b) { return b.when - a.when; })
       .slice(0, cfg.count);
 
     if (!items.length) return;
@@ -225,6 +235,10 @@
 
     return {
       igId:     m[1],
+      // date_gmt has no timezone marker, and Safari reads such a string as
+      // local time — hence the explicit Z. A row with no parseable date sorts
+      // last rather than poisoning the comparison with NaN.
+      when:     dateOf(row.date_gmt),
       full:     row.source_url,
       thumb:    sizedUrl(row, ['medium_large', 'medium', 'thumbnail']) || row.source_url,
       srcset:   buildSrcset(row),
@@ -234,6 +248,12 @@
       isVideo:  lines.indexOf('video') !== -1,
       carousel: lines.some(function (l) { return l.indexOf('carousel:') === 0; })
     };
+  }
+
+  function dateOf(value) {
+    if (!value) return -Infinity;
+    var t = Date.parse(/[Zz]|[+-]\d{2}:?\d{2}$/.test(value) ? value : value + 'Z');
+    return isNaN(t) ? -Infinity : t;
   }
 
   function isInstagramUrl(line) {

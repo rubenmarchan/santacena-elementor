@@ -212,7 +212,11 @@ def build(cfg):
                 "align": "center",
                 "title_color": "#ffffff",
                 "typography_typography": "custom",
-                "typography_font_family": "Lora",
+                # Per-template: the English hero is set in Cinzel, a display
+                # face used for that one line and nowhere else. Elementor
+                # enqueues the Google Font itself for a typography control, so
+                # nothing has to be added to the HTML widget's @import.
+                "typography_font_family": cfg.get("title_font", "Lora"),
                 "typography_font_size": {"unit": "px", "size": 104},
                 "typography_font_size_tablet": {"unit": "px", "size": 64},
                 "typography_font_size_mobile": {"unit": "px", "size": 40},
@@ -410,6 +414,7 @@ EN = {
     "poster": "https://holysupper.org/images/holysupper2026.jpg",
     "pretitle": "HOLY SUPPER",
     "hero_title": "A call to\ncommunion with Christ.",
+    "title_font": "Cinzel",
     "btn": "Video",
     "news_title": "News — Holy Supper 2026",
     "fresh": "New posts available — refresh",

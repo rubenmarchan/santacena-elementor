@@ -87,6 +87,11 @@ adding the key is all it takes once that site is synced.
 - **Lora and Inter** load via a Google Fonts `@import` inside the HTML widget,
   and via Elementor's typography controls on the native widgets.
 
+- **The English hero title is Cinzel** (`title_font` in the config; the Spanish
+  one is left as Lora). It's a display face for that one line — everything else
+  on both pages stays Lora/Inter. Elementor enqueues the Google Font itself for
+  a typography control, so the HTML widget's `@import` needs nothing added.
+
 - **`#about`** is an explicit `<div>` inside the HTML widget, not an Elementor
   section ID — the hero button's smooth scroll and the feed's own
   `scrollIntoView` both target it.
