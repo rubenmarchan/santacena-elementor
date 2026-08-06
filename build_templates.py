@@ -54,11 +54,34 @@ def new_id():
     return secrets.token_hex(4)[:7]
 
 
+def source_page():
+    return (SRC / "index5.html").read_text(encoding="utf-8")
+
+
+def tag_block(tag, needle):
+    """The contents of the one <tag> element in index5.html containing `needle`.
+
+    Anchored on content rather than line numbers, which is not a style
+    preference: this used to slice fixed line ranges out of the page, and
+    adding twelve lines of CSS higher up the same file silently shifted both
+    ranges. The templates still built — they just carried a truncated script
+    that died with `SyntaxError: Unexpected end of input`, and only the feed
+    test caught it.
+    """
+    found = [m.group(1) for m in re.finditer(rf"<{tag}[^>]*>(.*?)</{tag}>", source_page(), re.S)
+             if needle in m.group(1)]
+    if len(found) != 1:
+        raise SystemExit(f"expected 1 <{tag}> containing {needle!r} in index5.html, found {len(found)}")
+    return found[0]
+
+
 def feed_css():
     """Pull the news-feed stylesheet out of the source page and make it
     self-contained: no theme variables, no rem-scale assumption."""
-    lines = (SRC / "index5.html").read_text(encoding="utf-8").splitlines()
-    css = "\n".join(lines[5144:5388])  # the <style> block for the feed
+    css = tag_block("style", ".wp-news {")
+    # Drop that block's header comment: it names santaconvocacionlldm.org as
+    # the feed source, which is wrong on the English template.
+    css = css[css.index("/* --- el reproductor del intro"):]
 
     # .lite-yt is the old YouTube embed and .s-about__content is the StyleShout
     # container. Neither exists once the layout is Elementor sections.
@@ -71,8 +94,7 @@ def feed_css():
 
 def feed_js(cfg):
     """Same feed script, pointed at the site it is installed on."""
-    lines = (SRC / "index5.html").read_text(encoding="utf-8").splitlines()
-    js = "\n".join(lines[6349:6640])
+    js = tag_block("script", "wp-news-grid")
 
     # Same-origin now: an empty base makes every request relative, so the feed
     # keeps working if the domain ever changes.
@@ -111,13 +133,21 @@ def gallery_html(cfg):
     html = (HERE / "ig-gallery.html").read_text(encoding="utf-8")
     html = re.sub(r"\A<!--.*?-->\s*", "", html, flags=re.S)
 
-    for attr, value in cfg["gallery"].items():
+    # Appearance is custom properties, not data- attributes, so it's lifted out
+    # before the loop below and emitted as a rule instead.
+    conf = dict(cfg["gallery"])
+    title_font = conf.pop("title_font", None)
+
+    for attr, value in conf.items():
         pattern = f'data-{attr}="[^"]*"'
         if not re.search(pattern, html):
             raise SystemExit(f"ig-gallery.html has no data-{attr} attribute")
         # A function replacement: URLs in the config would otherwise have their
         # backslash-and-digit sequences read as group references.
         html = re.sub(pattern, lambda m: f'data-{attr}="{value}"', html, count=1)
+
+    if title_font:
+        html = f"<style>\n.hsig {{ --hsig-title-font: {title_font}; }}\n</style>\n\n{html}"
 
     return html.strip()
 
@@ -317,11 +347,15 @@ def build(cfg):
                 "align": "left",
                 "title_color": "#000000",
                 "typography_typography": "custom",
-                "typography_font_family": "Inter",
+                # Set per template rather than defaulted: the transform and the
+                # letter-spacing have to move together with the face. .2em is
+                # spacing for small caps; on the mixed-case Cinzel setting it
+                # leaves the words loose.
+                "typography_font_family": cfg["news_font"],
                 "typography_font_size": {"unit": "px", "size": 18},
                 "typography_font_weight": "600",
-                "typography_text_transform": "uppercase",
-                "typography_letter_spacing": {"unit": "em", "size": 0.2},
+                "typography_text_transform": cfg["news_transform"],
+                "typography_letter_spacing": {"unit": "em", "size": cfg["news_spacing"]},
             }),
             widget("html", {"html": feed_html}),
         ],
@@ -391,7 +425,11 @@ ES = {
     "pretitle": "SANTA CONVOCACIÓN",
     "hero_title": "Un llamado a la\ncomunión con Cristo.",
     "btn": "Video",
+    "title_font": "Cinzel",
     "news_title": "Noticias — Santa Convocación 2026",
+    "news_font": "Cinzel",
+    "news_transform": "none",
+    "news_spacing": 0.06,
     "fresh": "Hay publicaciones nuevas — actualizar",
     "loading": "Cargando publicaciones…",
     "more": "Ver más publicaciones",
@@ -417,6 +455,9 @@ EN = {
     "title_font": "Cinzel",
     "btn": "Video",
     "news_title": "News — Holy Supper 2026",
+    "news_font": "Cinzel",
+    "news_transform": "none",
+    "news_spacing": 0.06,
     "fresh": "New posts available — refresh",
     "loading": "Loading posts…",
     "more": "See more posts",
@@ -431,6 +472,8 @@ EN = {
         "profile": "https://www.instagram.com/holysuppertlotw/",
         "heading": "Follow us on Instagram",
         "cta": "View on Instagram",
+        # Not a data- attribute — see gallery_html.
+        "title_font": '"Cinzel", Georgia, serif',
     },
     "socials": [
         ("facebook", "https://www.facebook.com/holysupper"),

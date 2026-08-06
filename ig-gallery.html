@@ -21,6 +21,10 @@
      source CSS these pages came from assumed html{font-size:62.5%} (1rem =
      10px); the Elementor port dropped that, so rem here would size wrongly
      depending on which page it landed on.
+   - Appearance is CSS custom properties on `.hsig` (`--hsig-cols`,
+     `--hsig-gap`, `--hsig-accent`, `--hsig-title-font`); override them from
+     the embedding page rather than editing the rules here, so this file stays
+     the same everywhere it's pasted.
    - Config lives in the `data-` attributes on the section below, so the same
      block works on another site by editing markup only. On a page served from
      another domain (the static SantaCena pages on github.io, say) make
@@ -65,6 +69,10 @@
 
 <style>
 .hsig{--hsig-gap:10px;--hsig-cols:4;--hsig-fg:#1a1a1a;--hsig-muted:#6b6b6b;--hsig-accent:#b8860b;
+  /* Override to give the heading a display face — holysupper.org uses Cinzel.
+     `inherit` here means the page's own font, not the theme's h2 font, which
+     is what an unstyled .hsig-title would otherwise pick up. */
+  --hsig-title-font:inherit;
   display:block;padding:56px 0;color:var(--hsig-fg);
   font-family:inherit;-webkit-font-smoothing:antialiased}
 .hsig[hidden]{display:none}
@@ -72,7 +80,8 @@
 
 .hsig-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;
   gap:8px;margin:0 0 24px}
-.hsig-title{margin:0;font-size:30px;line-height:1.2;font-weight:600;letter-spacing:.01em}
+.hsig-title{margin:0;font-family:var(--hsig-title-font);font-size:30px;line-height:1.2;
+  font-weight:600;letter-spacing:.01em}
 .hsig-handle{font-size:15px;color:var(--hsig-accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s}
 .hsig-handle:hover,.hsig-handle:focus-visible{border-bottom-color:currentColor}
 
