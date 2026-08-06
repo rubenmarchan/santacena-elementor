@@ -337,8 +337,12 @@ def build(cfg):
             "content_width": {"unit": "px", "size": 1240},
             "background_background": "classic",
             "background_color": "#ffffff",
+            # A shorter bottom when the gallery follows: that section brings
+            # its own 56px band, and the two together left a conspicuous gap
+            # between the feed's last line and the first row of photos.
             "padding": {"unit": "px", "top": "96", "right": "20",
-                        "bottom": "96", "left": "20", "isLinked": False},
+                        "bottom": "48" if cfg.get("gallery") else "96",
+                        "left": "20", "isLinked": False},
         },
         [
             widget("heading", {

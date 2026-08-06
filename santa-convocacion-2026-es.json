@@ -4,7 +4,7 @@
  "type": "page",
  "content": [
   {
-   "id": "fc423cf",
+   "id": "d544460",
    "elType": "section",
    "settings": {
     "layout": "full_width",
@@ -38,7 +38,7 @@
    },
    "elements": [
     {
-     "id": "e0d788d",
+     "id": "74de6af",
      "elType": "column",
      "settings": {
       "_column_size": 100,
@@ -46,7 +46,7 @@
      },
      "elements": [
       {
-       "id": "403592a",
+       "id": "c8e6f75",
        "elType": "widget",
        "settings": {
         "title": "SANTA CONVOCACIÓN",
@@ -78,7 +78,7 @@
        "widgetType": "heading"
       },
       {
-       "id": "6c266fe",
+       "id": "0ea55a8",
        "elType": "widget",
        "settings": {
         "title": "Un llamado a la<br>comunión con Cristo.",
@@ -117,7 +117,7 @@
        "widgetType": "heading"
       },
       {
-       "id": "e2edc38",
+       "id": "d4cdbe8",
        "elType": "widget",
        "settings": {
         "image": {
@@ -153,7 +153,7 @@
        "widgetType": "image"
       },
       {
-       "id": "2567c72",
+       "id": "9bd91d5",
        "elType": "widget",
        "settings": {
         "text": "Video",
@@ -204,12 +204,12 @@
        "widgetType": "button"
       },
       {
-       "id": "9d2cc9c",
+       "id": "89875f4",
        "elType": "widget",
        "settings": {
         "social_icon_list": [
          {
-          "_id": "33ccb45",
+          "_id": "c373454",
           "social_icon": {
            "value": "fab fa-facebook",
            "library": "fa-brands"
@@ -221,7 +221,7 @@
           }
          },
          {
-          "_id": "10b5c9f",
+          "_id": "3387c1c",
           "social_icon": {
            "value": "fab fa-x-twitter",
            "library": "fa-brands"
@@ -233,7 +233,7 @@
           }
          },
          {
-          "_id": "d31b132",
+          "_id": "b34f7fa",
           "social_icon": {
            "value": "fab fa-instagram",
            "library": "fa-brands"
@@ -273,7 +273,7 @@
    "isInner": false
   },
   {
-   "id": "fb81eac",
+   "id": "5e93e9a",
    "elType": "section",
    "settings": {
     "layout": "boxed",
@@ -294,7 +294,7 @@
    },
    "elements": [
     {
-     "id": "3da6c2c",
+     "id": "1456188",
      "elType": "column",
      "settings": {
       "_column_size": 100,
@@ -302,7 +302,7 @@
      },
      "elements": [
       {
-       "id": "2ccd141",
+       "id": "88f47c6",
        "elType": "widget",
        "settings": {
         "title": "Noticias — Santa Convocación 2026",
@@ -334,7 +334,7 @@
        "widgetType": "heading"
       },
       {
-       "id": "4e0baaf",
+       "id": "88c591b",
        "elType": "widget",
        "settings": {
         "html": "<style>\n@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600;700&display=swap');\n\n.wp-news {\n    --font-1        : \"Lora\", Georgia, serif;\n    --font-2        : \"Inter\", -apple-system, BlinkMacSystemFont, sans-serif;\n    --color-1       : hsla(37, 95%, 57%, 1);\n    --color-1-dark  : hsla(37, 95%, 47%, 1);\n    --color-2       : hsla(194, 89%, 26%, 1);\n    --color-2-dark  : hsla(194, 89%, 16%, 1);\n    --color-error-content : hsla(359, 50%, 50%, 1);\n    --color-gray-19 : #161616;\n    --color-gray-15 : #6e6f6f;\n    --color-gray-14 : #838585;\n    --color-gray-11 : #c5c8c7;\n    --color-gray-9  : #dfe1e0;\n    --color-gray-6  : #e9ebeb;\n    --color-gray-3  : #f4f5f5;\n    --color-white   : #ffffff;\n    --color-text    : #161616;\n    --vspace-0_5    : 16px;\n    --vspace-1      : 32px;\n}\n\n/* --- el reproductor del intro ------------------------------------------\n * En el original el bloque .lite-yt es un div de 560px sin márgenes, así que\n * se pegaba a la izquierda aunque el título de arriba vaya centrado; y el\n * <iframe> que lleva dentro mide 720x405 por atributo, o sea que sobresalía\n * del recuadro y el overflow:hidden se lo comía por la derecha. Con esto el\n * recuadro se centra a cualquier ancho y el vídeo llena su propio marco.\n * ---------------------------------------------------------------------- */\n\n\n\n\n/* el contenedor original topa en 1000px; el retículo necesita más aire */\n\n\n.wp-news {\n    margin-top : var(--vspace-1);\n    text-align : left;\n}\n\n.wp-news__grid {\n    display               : grid;\n    grid-template-columns : repeat(auto-fill, minmax(300px, 1fr));\n    gap                   : var(--vspace-1) 32px;\n    margin                : 0;\n    padding               : 0;\n    list-style            : none;\n}\n\n.wp-news__card {\n    display          : flex;\n    flex-direction   : column;\n    background-color : var(--color-white);\n    border           : 1px solid var(--color-gray-9);\n    border-radius    : 10px;\n    overflow         : hidden;\n    transition       : transform .25s ease-out, box-shadow .25s ease-out, border-color .25s ease-out;\n}\n\n.wp-news__card:hover,\n.wp-news__card:focus-within {\n    transform    : translateY(-4px);\n    box-shadow   : 0 16px 32px rgba(0, 0, 0, .10);\n    border-color : var(--color-gray-11);\n}\n\n.wp-news__thumb {\n    position         : relative;\n    display          : block;\n    aspect-ratio     : 16 / 10;\n    background-color : var(--color-gray-6);\n    overflow         : hidden;\n}\n\n.wp-news__thumb img {\n    width      : 100%;\n    height     : 100%;\n    object-fit : cover;\n    display    : block;\n    transition : transform .4s ease-out;\n}\n\n.wp-news__card:hover .wp-news__thumb img { transform: scale(1.04); }\n\n/* marcador cuando la entrada no trae imagen destacada */\n.wp-news__thumb--empty {\n    display         : flex;\n    align-items     : center;\n    justify-content : center;\n    background      : linear-gradient(135deg, var(--color-2-dark), var(--color-2));\n    color           : var(--color-1);\n    font-family     : var(--font-1);\n    font-size       : 24px;\n    letter-spacing  : 3px;\n}\n\n.wp-news__body {\n    display        : flex;\n    flex-direction : column;\n    flex           : 1 1 auto;\n    padding        : 24px 24px 28px;\n}\n\n.wp-news__date {\n    font-family    : var(--font-2);\n    font-size      : 13px;\n    font-weight    : 600;\n    text-transform : uppercase;\n    letter-spacing : 2px;\n    color          : var(--color-1-dark);\n    margin         : 0 0 8px;\n}\n\n.wp-news__title {\n    font-family : var(--font-1);\n    font-size   : 20px;\n    line-height : 1.35;\n    margin      : 0 0 12px;\n}\n\n.wp-news__title a {\n    color           : var(--color-text);\n    text-decoration : none;\n    border-bottom   : 1px solid transparent;\n    transition      : color .2s ease-out, border-color .2s ease-out;\n}\n\n.wp-news__title a:hover,\n.wp-news__title a:focus {\n    color         : var(--color-2);\n    border-color  : var(--color-2);\n}\n\n.wp-news__excerpt {\n    font-family : var(--font-1);\n    font-size   : 15px;\n    line-height : 1.7;\n    color       : var(--color-gray-15);\n    margin      : 0 0 20px;\n}\n\n.wp-news__link {\n    margin-top     : auto;\n    font-family    : var(--font-2);\n    font-size      : 13px;\n    font-weight    : 600;\n    text-transform : uppercase;\n    letter-spacing : 2px;\n    color          : var(--color-2);\n    text-decoration: none;\n}\n\n.wp-news__link::after {\n    content     : \"\\2192\";\n    margin-left : 6px;\n    transition  : margin-left .2s ease-out;\n    display     : inline-block;\n}\n\n.wp-news__link:hover::after { margin-left: 12px; }\n\n/* --- estados: cargando, error, vacío ------------------------------------ */\n.wp-news__status {\n    font-family : var(--font-2);\n    font-size   : 15px;\n    color       : var(--color-gray-15);\n    text-align  : center;\n    padding     : var(--vspace-1) 0;\n}\n\n.wp-news__status[hidden] { display: none; }\n.wp-news__status--error  { color: var(--color-error-content); }\n\n.wp-news__retry {\n    margin-left     : 12px;\n    font-family     : var(--font-2);\n    font-size       : 14px;\n    font-weight     : 600;\n    color           : var(--color-2);\n    background      : none;\n    border          : 0;\n    border-bottom   : 1px solid currentColor;\n    padding         : 0;\n    cursor          : pointer;\n    height          : auto;\n    line-height     : inherit;\n    text-transform  : none;\n    letter-spacing  : normal;\n}\n\n/* esqueletos mientras llega la primera tanda */\n.wp-news__skeleton {\n    border-radius : 10px;\n    background    : linear-gradient(100deg, var(--color-gray-6) 30%, var(--color-gray-3) 50%, var(--color-gray-6) 70%);\n    background-size: 400% 100%;\n    animation     : wp-news-shimmer 1.4s ease-in-out infinite;\n    min-height    : 340px;\n}\n\n@keyframes wp-news-shimmer {\n    from { background-position: 100% 0; }\n    to   { background-position: 0 0; }\n}\n\n/* --- pie del feed -------------------------------------------------------- */\n.wp-news__actions {\n    display         : flex;\n    justify-content : center;\n    margin-top      : var(--vspace-1);\n}\n\n.wp-news__more[hidden] { display: none; }\n\n.wp-news__foot {\n    text-align  : center;\n    font-family : var(--font-2);\n    font-size   : 13px;\n    color       : var(--color-gray-14);\n    margin      : var(--vspace-0_5) 0 0;\n}\n\n.wp-news__foot a { color: var(--color-gray-14); }\n\n/* aviso de entradas nuevas detectadas sin recargar la página */\n.wp-news__fresh {\n    display          : block;\n    margin           : 0 auto var(--vspace-0_5);\n    font-family      : var(--font-2);\n    font-size        : 14px;\n    font-weight      : 600;\n    color            : var(--color-gray-19);\n    background-color : var(--color-1);\n    border           : 0;\n    border-radius    : 100px;\n    padding          : 10px 24px;\n    height           : auto;\n    line-height      : 1.4;\n    cursor           : pointer;\n    text-transform   : none;\n    letter-spacing   : normal;\n    box-shadow       : 0 6px 16px rgba(0, 0, 0, .12);\n}\n\n.wp-news__fresh[hidden] { display: none; }\n\n@media screen and (max-width: 800px) {\n    .wp-news__grid { grid-template-columns: 1fr; }\n}\n\n@media (prefers-reduced-motion: reduce) {\n    .wp-news__card,\n    .wp-news__thumb img,\n    .wp-news__skeleton { transition: none; animation: none; }\n}\n</style>\n\n<div id=\"about\">\n<div class=\"wp-news\" id=\"wp-news\">\n\n    <button type=\"button\" class=\"wp-news__fresh\" id=\"wp-news-fresh\" hidden>\n        Hay publicaciones nuevas — actualizar\n    </button>\n\n    <div class=\"wp-news__grid\" id=\"wp-news-grid\"></div>\n\n    <p class=\"wp-news__status\" id=\"wp-news-status\" role=\"status\" aria-live=\"polite\">\n        Cargando publicaciones…\n    </p>\n\n    <div class=\"wp-news__actions\">\n        <button type=\"button\" class=\"btn btn--stroke wp-news__more\" id=\"wp-news-more\" hidden>\n            Ver más publicaciones\n        </button>\n    </div>\n\n    <p class=\"wp-news__foot\" id=\"wp-news-foot\"></p>\n\n</div>\n</div>\n\n<script>\n(function () {\n        'use strict';\n\n        /* --- configuración --------------------------------------------------\n         * sitio     : '' = este mismo sitio (peticiones relativas).\n         * categoria : 11 = \"Santa Convocación\". Pon null para traer todas.\n         * porPagina : cuántas tarjetas por tanda.\n         * refrescoMs: cada cuánto se comprueba si hay entradas nuevas.\n         * ------------------------------------------------------------------- */\n        var CFG = {\n            sitio      : '',\n            categoria  : 11,\n            porPagina  : 9,\n            refrescoMs : 5 * 60 * 1000\n        };\n\n        var grid   = document.getElementById('wp-news-grid');\n        var status = document.getElementById('wp-news-status');\n        var more   = document.getElementById('wp-news-more');\n        var fresh  = document.getElementById('wp-news-fresh');\n        var foot   = document.getElementById('wp-news-foot');\n\n        if (!grid) { return; }\n\n        var state = {\n            pagina       : 0,     // última página pintada\n            totalPaginas : 1,\n            total        : 0,\n            masReciente  : null,  // id de la entrada más nueva conocida\n            cargando     : false,\n            ultimaMirada : 0\n        };\n\n        /* --- utilidades ----------------------------------------------------- */\n\n        // WordPress devuelve HTML ya renderizado (con entidades tipo &#8230;).\n        // Lo pasamos por un nodo suelto para quedarnos solo con el texto.\n        var scratch = document.createElement('div');\n        function aTexto(html) {\n            scratch.innerHTML = html || '';\n            return (scratch.textContent || '').replace(/\\s+/g, ' ').trim();\n        }\n\n        function recortar(texto, max) {\n            if (texto.length <= max) { return texto; }\n            var corte = texto.slice(0, max);\n            var esp = corte.lastIndexOf(' ');\n            return (esp > max * 0.6 ? corte.slice(0, esp) : corte) + '…';\n        }\n\n        function fecha(iso) {\n            var d = new Date(iso);\n            if (isNaN(d)) { return ''; }\n            try {\n                return d.toLocaleDateString('es-ES', {\n                    day: 'numeric', month: 'long', year: 'numeric'\n                });\n            } catch (e) {\n                return d.toISOString().slice(0, 10);\n            }\n        }\n\n        function imagen(post) {\n            var emb = post._embedded && post._embedded['wp:featuredmedia'];\n            var media = emb && emb[0];\n            if (!media || media.code) { return null; }   // code = error de permisos\n            var sizes = (media.media_details && media.media_details.sizes) || {};\n            var pick = sizes.medium_large || sizes.large || sizes.medium || null;\n            return {\n                src: (pick && pick.source_url) || media.source_url || null,\n                alt: aTexto(media.alt_text || '')\n            };\n        }\n\n        function url(pagina, porPagina) {\n            var q = [\n                'per_page=' + (porPagina || CFG.porPagina),\n                'page=' + pagina,\n                'orderby=date',\n                'order=desc',\n                '_embed=wp:featuredmedia',\n                '_fields=id,link,date,title,excerpt,_links'\n            ];\n            if (CFG.categoria) { q.push('categories=' + CFG.categoria); }\n            return CFG.sitio + '/wp-json/wp/v2/posts?' + q.join('&');\n        }\n\n        function traer(pagina, porPagina) {\n            return fetch(url(pagina, porPagina), { credentials: 'omit' })\n                .then(function (r) {\n                    if (!r.ok) { throw new Error('HTTP ' + r.status); }\n                    return r.json().then(function (datos) {\n                        return {\n                            posts    : datos,\n                            total    : parseInt(r.headers.get('X-WP-Total'), 10) || datos.length,\n                            paginas  : parseInt(r.headers.get('X-WP-TotalPages'), 10) || 1\n                        };\n                    });\n                });\n        }\n\n        /* --- pintado -------------------------------------------------------- */\n\n        function tarjeta(post) {\n            var art = document.createElement('article');\n            art.className = 'wp-news__card';\n\n            var titulo  = aTexto(post.title && post.title.rendered) || 'Sin título';\n            var resumen = recortar(aTexto(post.excerpt && post.excerpt.rendered), 160);\n            var img     = imagen(post);\n\n            var enlace = document.createElement('a');\n            enlace.className = 'wp-news__thumb';\n            enlace.href = post.link;\n            enlace.setAttribute('aria-hidden', 'true');\n            enlace.setAttribute('tabindex', '-1');\n\n            if (img && img.src) {\n                var el = document.createElement('img');\n                el.src = img.src;\n                el.alt = img.alt || '';\n                el.loading = 'lazy';\n                el.decoding = 'async';\n                enlace.appendChild(el);\n            } else {\n                enlace.className += ' wp-news__thumb--empty';\n                enlace.textContent = 'LLDM';\n            }\n\n            var cuerpo = document.createElement('div');\n            cuerpo.className = 'wp-news__body';\n\n            var f = document.createElement('p');\n            f.className = 'wp-news__date';\n            f.textContent = fecha(post.date);\n\n            var h = document.createElement('h3');\n            h.className = 'wp-news__title';\n            var ha = document.createElement('a');\n            ha.href = post.link;\n            ha.textContent = titulo;\n            h.appendChild(ha);\n\n            var p = document.createElement('p');\n            p.className = 'wp-news__excerpt';\n            p.textContent = resumen;\n\n            var leer = document.createElement('a');\n            leer.className = 'wp-news__link';\n            leer.href = post.link;\n            leer.textContent = 'Leer publicación';\n            leer.setAttribute('aria-label', 'Leer publicación: ' + titulo);\n\n            cuerpo.appendChild(f);\n            cuerpo.appendChild(h);\n            if (resumen) { cuerpo.appendChild(p); }\n            cuerpo.appendChild(leer);\n\n            art.appendChild(enlace);\n            art.appendChild(cuerpo);\n            return art;\n        }\n\n        function esqueletos(n) {\n            var frag = document.createDocumentFragment();\n            for (var i = 0; i < n; i++) {\n                var s = document.createElement('div');\n                s.className = 'wp-news__skeleton';\n                frag.appendChild(s);\n            }\n            grid.appendChild(frag);\n        }\n\n        function limpiarEsqueletos() {\n            var s = grid.querySelectorAll('.wp-news__skeleton');\n            for (var i = 0; i < s.length; i++) { s[i].parentNode.removeChild(s[i]); }\n        }\n\n        function mensaje(texto, esError, conReintento) {\n            status.hidden = !texto;\n            status.textContent = texto || '';\n            status.className = 'wp-news__status' + (esError ? ' wp-news__status--error' : '');\n            if (conReintento) {\n                var b = document.createElement('button');\n                b.type = 'button';\n                b.className = 'wp-news__retry';\n                b.textContent = 'Reintentar';\n                b.addEventListener('click', function () { cargar(state.pagina + 1, true); });\n                status.appendChild(b);\n            }\n        }\n\n        function pie() {\n            if (!state.total) { foot.textContent = ''; return; }\n            var mostradas = grid.querySelectorAll('.wp-news__card').length;\n            foot.textContent = 'Mostrando ' + mostradas + ' de ' + state.total + ' publicaciones · ';\n            var a = document.createElement('a');\n            a.href = CFG.sitio || '/';\n            a.textContent = 'ver el sitio completo';\n            foot.appendChild(a);\n        }\n\n        /* --- carga ----------------------------------------------------------- */\n\n        function cargar(pagina, anexar) {\n            if (state.cargando) { return; }\n            state.cargando = true;\n            more.disabled = true;\n\n            if (!anexar) { grid.innerHTML = ''; }\n            if (!grid.querySelector('.wp-news__card')) { esqueletos(CFG.porPagina); }\n            mensaje(anexar ? 'Cargando más…' : 'Cargando publicaciones…');\n\n            traer(pagina).then(function (res) {\n                limpiarEsqueletos();\n                state.pagina       = pagina;\n                state.total        = res.total;\n                state.totalPaginas = res.paginas;\n                state.ultimaMirada = Date.now();\n\n                if (!res.posts.length && pagina === 1) {\n                    mensaje('Todavía no hay publicaciones.');\n                    more.hidden = true;\n                    return;\n                }\n\n                if (res.posts[0]) { state.masReciente = res.posts[0].id; }\n\n                var frag = document.createDocumentFragment();\n                res.posts.forEach(function (post) { frag.appendChild(tarjeta(post)); });\n                grid.appendChild(frag);\n\n                mensaje('');\n                more.hidden = pagina >= state.totalPaginas;\n                fresh.hidden = true;\n                pie();\n            }).catch(function (err) {\n                limpiarEsqueletos();\n                if (!grid.querySelector('.wp-news__card')) {\n                    mensaje('No se pudieron cargar las publicaciones (' + err.message + ').', true, true);\n                } else {\n                    mensaje('No se pudieron cargar más publicaciones.', true, true);\n                }\n            }).then(function () {\n                state.cargando = false;\n                more.disabled = false;\n            });\n        }\n\n        /* --- ¿hay algo nuevo? -------------------------------------------------\n         * Se pregunta por la entrada más reciente (1 sola) y se compara el id.\n         * Si el visitante sigue en la primera tanda, se refresca sin avisar;\n         * si ya pulsó \"ver más\", se le ofrece el botón para no moverle el suelo.\n         * --------------------------------------------------------------------- */\n        function mirarNovedades() {\n            if (state.cargando || document.hidden || !state.masReciente) { return; }\n            state.ultimaMirada = Date.now();\n\n            traer(1, 1).then(function (res) {\n                var nuevo = res.posts[0];\n                if (!nuevo || nuevo.id === state.masReciente) {\n                    if (res.total !== state.total) { state.total = res.total; pie(); }\n                    return;\n                }\n                if (state.pagina <= 1) {\n                    cargar(1, false);           // aún en la primera tanda: recarga limpia\n                } else {\n                    fresh.hidden = false;       // ya navegó: que decida él\n                }\n            }).catch(function () { /* sin conexión: se reintenta al siguiente ciclo */ });\n        }\n\n        /* --- arranque -------------------------------------------------------- */\n\n        more.addEventListener('click', function () { cargar(state.pagina + 1, true); });\n\n        fresh.addEventListener('click', function () {\n            fresh.hidden = true;\n            cargar(1, false);\n            document.getElementById('about').scrollIntoView({ behavior: 'smooth', block: 'start' });\n        });\n\n        setInterval(mirarNovedades, CFG.refrescoMs);\n\n        // al volver a la pestaña, si hace rato que no se mira, se comprueba ya\n        document.addEventListener('visibilitychange', function () {\n            if (!document.hidden && Date.now() - state.ultimaMirada > 60000) { mirarNovedades(); }\n        });\n        window.addEventListener('online', mirarNovedades);\n\n        cargar(1, false);\n    })();\n</script>"
@@ -349,7 +349,7 @@
    "isInner": false
   },
   {
-   "id": "6b06519",
+   "id": "93476d7",
    "elType": "section",
    "settings": {
     "layout": "boxed",
@@ -366,7 +366,7 @@
    },
    "elements": [
     {
-     "id": "8336050",
+     "id": "3a78428",
      "elType": "column",
      "settings": {
       "_column_size": 100,
@@ -374,7 +374,7 @@
      },
      "elements": [
       {
-       "id": "df0bdb3",
+       "id": "0ac7bf0",
        "elType": "widget",
        "settings": {
         "title": "Iglesia La Luz del Mundo | Santa Convocación © Copyright 2026",
