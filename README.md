@@ -10,8 +10,9 @@ Hybrid conversion of `index5.html` (ES) and `index5Eng.html` (EN) from
 
 Each template is three sections, plus a fourth on the English one:
 
-1. **Hero** — full-height background, pretitle, title, poster image, "Video"
-   button, social icons. All native Elementor widgets.
+1. **Hero** — full-height background, pretitle, title, poster/video frame,
+   "Video" button, social icons. Native Elementor widgets, plus one HTML widget
+   that renders nothing and only carries the frame's sizing rule (see below).
 2. **News** — a heading widget plus one HTML widget carrying the live
    `/wp-json/wp/v2/posts` feed (markup + CSS + JS).
 3. **Instagram gallery** (EN only) — one HTML widget carrying `ig-gallery.html`,
@@ -57,6 +58,32 @@ title standing over nothing.
 Only the English template has a `gallery` key. santaconvocacionlldm.org has no
 synced photos, so the same block there would ship a section that never appears;
 adding the key is all it takes once that site is synced.
+
+## The hero video frame
+
+The poster is the placeholder for a video that isn't shot yet, so the hero is
+built around that frame rather than around the headline. It is **not** a fixed
+560px any more: `HERO_VIDEO_CSS` in `build_templates.py` sizes it from the free
+height of the window — floor 560px, ceiling 1200px, always 16:9 — and the title
+sits at 64px (was 104) to leave it the room. This mirrors `index6.html` /
+`index6Eng.html` in the SantaCena repo, which are the same move on the static
+pages; change one, change the other.
+
+Two things make it work and are easy to undo by accident:
+
+- The rule lives in an HTML widget because Elementor's width control takes a
+  single number, not a `max()`/`calc()` expression. Setting a width on the image
+  widget in the editor will fight it.
+- It hangs off `_css_classes: sc-hero-video` on the image widget. Rename or
+  clear that class in the editor and the frame drops back to Elementor's
+  defaults.
+
+Because the section is min-height (not a hard 100vh), a frame too tall for the
+window pushes the hero taller instead of clipping the button.
+
+**To put the real video in**, replace the image widget with a Video widget (or
+an HTML widget holding the embed) and give it the same `sc-hero-video` class —
+the frame geometry is on the class, not on the widget type.
 
 ## Things worth knowing
 

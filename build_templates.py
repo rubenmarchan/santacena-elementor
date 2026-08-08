@@ -202,6 +202,29 @@ def socials(links):
     })
 
 
+# The poster/video frame is the point of the hero, so its size is driven by the
+# window rather than fixed. Elementor's width control takes a single number, not
+# an expression, so the rule lives here instead: the frame grows with the free
+# height of the viewport, floors at the 560px it used to be, and stops at
+# 1200px. max-width over aspect-ratio keeps 16:9 at every size, which is what
+# lets the <img> be swapped for a video embed later without touching the frame.
+#
+# Rems are baked to pixels for the same reason as the feed CSS — the source
+# stylesheet set html{font-size:62.5%} and the destination theme won't.
+HERO_VIDEO_CSS = """<style>
+.sc-hero-video img,
+.sc-hero-video iframe,
+.sc-hero-video video {
+    width         : 100%;
+    max-width     : max(560px, min(1200px, calc((92vh - 400px) * 16 / 9)));
+    height        : auto;
+    aspect-ratio  : 16 / 9;
+    object-fit    : cover;
+    border-radius : 8px;
+}
+</style>"""
+
+
 def build(cfg):
     hero_title = cfg["hero_title"].replace("\n", "<br>")
 
@@ -218,10 +241,21 @@ def build(cfg):
             "background_overlay_background": "classic",
             "background_overlay_color": "#000000",
             "background_overlay_opacity": {"unit": "px", "size": 0.45},
-            "padding": {"unit": "px", "top": "120", "right": "20",
-                        "bottom": "120", "left": "20", "isLinked": False},
+            # Tighter than the 120 it was: the frame below is a good deal
+            # bigger now and the section is min-height, so the padding is what
+            # decides whether the button still lands above the fold.
+            "padding": {"unit": "px", "top": "80", "right": "20",
+                        "bottom": "72", "left": "20", "isLinked": False},
         },
         [
+            # Renders nothing — it carries HERO_VIDEO_CSS, which Elementor's
+            # own controls can't express. Kept inside the hero so the rule
+            # travels with the section it styles.
+            widget("html", {
+                "html": HERO_VIDEO_CSS,
+                "_margin": {"unit": "px", "top": "0", "right": "0",
+                            "bottom": "0", "left": "0", "isLinked": True},
+            }),
             widget("heading", {
                 "title": cfg["pretitle"],
                 "header_size": "h3",
@@ -247,27 +281,32 @@ def build(cfg):
                 # enqueues the Google Font itself for a typography control, so
                 # nothing has to be added to the HTML widget's @import.
                 "typography_font_family": cfg.get("title_font", "Lora"),
-                "typography_font_size": {"unit": "px", "size": 104},
-                "typography_font_size_tablet": {"unit": "px", "size": 64},
-                "typography_font_size_mobile": {"unit": "px", "size": 40},
+                # Down from 104: the title yields the stage to the frame below
+                # it. The static pages make the same move (6.4rem there).
+                "typography_font_size": {"unit": "px", "size": 64},
+                "typography_font_size_tablet": {"unit": "px", "size": 48},
+                "typography_font_size_mobile": {"unit": "px", "size": 34},
                 "typography_font_weight": "700",
                 "typography_line_height": {"unit": "em", "size": 1.1154},
                 "_margin": {"unit": "px", "top": "0", "right": "0",
-                            "bottom": "48", "left": "0", "isLinked": False},
+                            "bottom": "28", "left": "0", "isLinked": False},
             }),
             widget("image", {
                 "image": {"url": cfg["poster"], "id": ""},
                 "image_size": "full",
                 "align": "center",
-                "width": {"unit": "px", "size": 560},
+                # Sizing is HERO_VIDEO_CSS's job — this control only takes a
+                # fixed number, so it stays out of the way at 100%.
+                "width": {"unit": "%", "size": 100},
+                "_css_classes": "sc-hero-video",
                 "image_border_radius": {"unit": "px", "top": "8", "right": "8",
                                         "bottom": "8", "left": "8", "isLinked": True},
                 "caption_source": "none",
                 "_element_custom_width": "yes",
                 "box_shadow_box_shadow_type": "yes",
-                "box_shadow_box_shadow": {"horizontal": 0, "vertical": 12,
-                                          "blur": 32, "spread": 0,
-                                          "color": "rgba(0,0,0,0.3)"},
+                "box_shadow_box_shadow": {"horizontal": 0, "vertical": 20,
+                                          "blur": 56, "spread": 0,
+                                          "color": "rgba(0,0,0,0.45)"},
             }),
             widget("button", {
                 "text": cfg["btn"],
