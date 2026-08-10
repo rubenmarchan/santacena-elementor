@@ -1,12 +1,16 @@
 # SantaCena → Elementor templates
 
-Hybrid conversion of `index5.html` (ES) and `index5Eng.html` (EN) from
+Hybrid conversion of `index7.html` (ES) and `index7Eng.html` (EN) from
 `github.com/rubenmarchan/SantaCena` into importable Elementor page templates.
+
+The source page is the `SOURCE` constant at the top of `build_templates.py`.
+It moved from index5 to **index7** on 2026-08-10, when the news feed was
+relaid out the way lldmcentenario.org does it — see "News layout" below.
 
 | File | Goes on | News feed |
 |---|---|---|
-| `santa-convocacion-2026-es.json` | santaconvocacionlldm.org | category **11**, 178 posts |
-| `holy-supper-2026-en.json` | holysupper.org | category **2**, 96 posts |
+| `santa-convocacion-2026-es.json` | santaconvocacionlldm.org | category **11**, 189 posts |
+| `holy-supper-2026-en.json` | holysupper.org | category **2**, 104 posts |
 
 Each template is three sections, plus a fourth on the English one:
 
@@ -102,6 +106,25 @@ the frame geometry is on the class, not on the widget type.
   the `unfiltered_html` capability save that — fine for an administrator on a
   single site, not for editors or for multisite non-super-admins.
 
+### News layout (2026-08-10)
+
+The feed paints two blocks, the same pair that site's WordPress theme uses:
+
+1. **1 main post + 3 side posts** — newest post large, the next three stacked
+   beside it as compact cards with no excerpt.
+2. **3-column grid, offset 4** — the rest of the listing. The 4 is literal: the
+   grid asks the REST API for `offset=4`, so it starts where the featured block
+   ended and the two can never show the same post. "See more posts" advances it
+   by `offset = 4 + <already painted>`.
+
+`CFG.destacadas` (4) is both the size of the featured block and that offset —
+changing one changes the other, which is the point. `CFG.porPagina` (6) is the
+size of each grid batch. The first paint is a single request for
+`destacadas + porPagina`, split client-side.
+
+The section is 1720px wide with a `#F4F1E7` ground; at 1240px the three columns
+came out under 400px each and the layout lost its point.
+
 - **The feed is same-origin now.** `CFG.sitio` is `''`, so requests go to
   `/wp-json/...` relative and survive a domain change. To point a template at
   a different site, set `sitio` back to an absolute URL in the HTML widget.
@@ -111,8 +134,15 @@ the frame geometry is on the class, not on the widget type.
   been baked to pixels, and the theme colour/spacing variables it referenced are
   now declared locally on `.wp-news`. Nothing depends on the destination theme.
 
-- **Lora and Inter** load via a Google Fonts `@import` inside the HTML widget,
-  and via Elementor's typography controls on the native widgets.
+- **Lora, Inter and Syne** load via a Google Fonts `@import` inside the HTML
+  widget, and via Elementor's typography controls on the native widgets. Syne
+  is what lldmcentenario.org sets its headings in; the news card titles use it.
+
+- **The palette rides on `.wp-news`.** In the static page it is declared on
+  `.s-about`, the section wrapper, which does not survive the port —
+  `feed_css()` rewrites that selector. If a future edit moves those custom
+  properties somewhere else, the build stops rather than shipping cards with
+  no colours.
 
 - **The English hero title is Cinzel** (`title_font` in the config; the Spanish
   one is left as Lora). It's a display face for that one line — everything else

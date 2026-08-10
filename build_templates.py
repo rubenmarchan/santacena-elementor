@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Turn SantaCena index5.html / index5Eng.html into Elementor page templates.
+"""Turn SantaCena index7.html / index7Eng.html into Elementor page templates.
 
 Hybrid conversion: hero, headings, poster, button, socials and footer become
 native Elementor widgets; the WordPress news feed stays an HTML widget because
 it is JavaScript that talks to /wp-json. A template that sets `gallery` gets a
 second HTML widget carrying the Instagram grid from ig-gallery.html.
+
+The feed is lifted from index7 (2026-08-10), which lays the news out the way
+lldmcentenario.org does: one main post with three beside it, then the rest in
+three columns offset by four so nothing repeats. Older variants stay in the
+repo; point SOURCE back at index5.html to rebuild the single-grid version.
 
 Output: two importable .json files (Elementor > Templates > Import).
 """
@@ -18,6 +23,10 @@ HERE = pathlib.Path(__file__).parent
 SRC = HERE / "SantaCena"
 OUT = HERE / "out"
 OUT.mkdir(exist_ok=True)
+
+# Which page the feed's CSS and JS are lifted from. Only the Spanish page is
+# read: the English template is the same build with EN_STRINGS swapped in.
+SOURCE = "index7.html"
 
 # The StyleShout stylesheet sets html{font-size:62.5%} so 1rem == 10px there.
 # A normal WordPress theme leaves it at 16px, which would inflate every size in
@@ -46,6 +55,7 @@ FEED_VARS = """
     --color-text    : #161616;
     --vspace-0_5    : 16px;
     --vspace-1      : 32px;
+    --vspace-2      : 64px;
 }
 """
 
@@ -55,11 +65,11 @@ def new_id():
 
 
 def source_page():
-    return (SRC / "index5.html").read_text(encoding="utf-8")
+    return (SRC / SOURCE).read_text(encoding="utf-8")
 
 
 def tag_block(tag, needle):
-    """The contents of the one <tag> element in index5.html containing `needle`.
+    """The contents of the one <tag> element in the source page containing `needle`.
 
     Anchored on content rather than line numbers, which is not a style
     preference: this used to slice fixed line ranges out of the page, and
@@ -71,7 +81,7 @@ def tag_block(tag, needle):
     found = [m.group(1) for m in re.finditer(rf"<{tag}[^>]*>(.*?)</{tag}>", source_page(), re.S)
              if needle in m.group(1)]
     if len(found) != 1:
-        raise SystemExit(f"expected 1 <{tag}> containing {needle!r} in index5.html, found {len(found)}")
+        raise SystemExit(f"expected 1 <{tag}> containing {needle!r} in {SOURCE}, found {len(found)}")
     return found[0]
 
 
@@ -87,6 +97,15 @@ def feed_css():
     # container. Neither exists once the layout is Elementor sections.
     css = re.sub(r"\.s-intro__more \.lite-yt[^}]*}", "", css)
     css = re.sub(r"\.s-about__content\s*{[^}]*}", "", css)
+
+    # The palette is declared on .s-about, the section wrapper, which is also
+    # gone. Move it onto .wp-news — without this every colour in the block
+    # resolves to nothing and the cards come out unstyled. The section's own
+    # background is Elementor's job, so that one declaration goes.
+    if ".s-about {" not in css:
+        raise SystemExit("the source page no longer declares the palette on .s-about")
+    css = css.replace(".s-about {", ".wp-news {", 1)
+    css = re.sub(r"\n\s*background-color\s*:\s*var\(--news-bg\);", "", css, count=1)
 
     css = REM.sub(lambda m: f"{float(m.group(1)) * 10:g}px", css)
     return FEED_VARS + "\n" + css.strip()
@@ -338,7 +357,7 @@ def build(cfg):
     # The feed markup keeps its original ids and classes so the script below it
     # needs no rewiring. #about also serves as the hero button's scroll target.
     feed_html = f"""<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
 {feed_css()}
 </style>
 
@@ -349,6 +368,11 @@ def build(cfg):
         {cfg['fresh']}
     </button>
 
+    <div class="wp-news__lead" id="wp-news-lead"></div>
+
+    <h3 class="wp-news__section-title" id="wp-news-grid-title" hidden>
+        {cfg['more_news']}
+    </h3>
     <div class="wp-news__grid" id="wp-news-grid"></div>
 
     <p class="wp-news__status" id="wp-news-status" role="status" aria-live="polite">
@@ -372,10 +396,13 @@ def build(cfg):
 
     news = section(
         {
+            # Three real columns need room: 1240px left them under 400px each.
+            # The cream ground and the width both come from lldmcentenario.org,
+            # whose news runs nearly edge to edge.
             "layout": "boxed",
-            "content_width": {"unit": "px", "size": 1240},
+            "content_width": {"unit": "px", "size": 1720},
             "background_background": "classic",
-            "background_color": "#ffffff",
+            "background_color": "#F4F1E7",
             # A shorter bottom when the gallery follows: that section brings
             # its own 56px band, and the two together left a conspicuous gap
             # between the feed's last line and the first row of photos.
@@ -388,7 +415,7 @@ def build(cfg):
                 "title": cfg["news_title"],
                 "header_size": "h2",
                 "align": "left",
-                "title_color": "#000000",
+                "title_color": "#0F121C",
                 "typography_typography": "custom",
                 # Set per template rather than defaulted: the transform and the
                 # letter-spacing have to move together with the face. .2em is
@@ -480,6 +507,8 @@ ES = {
     "fresh": "Hay publicaciones nuevas — actualizar",
     "loading": "Cargando publicaciones…",
     "more": "Ver más publicaciones",
+    # Titular del segundo bloque, el de tres columnas desplazado 4.
+    "more_news": "Más noticias",
     "copyright": "Iglesia La Luz del Mundo | Santa Convocación © Copyright 2026",
     # No "gallery" key on purpose — see the note on EN below.
     "socials": [
@@ -508,6 +537,7 @@ EN = {
     "fresh": "New posts available — refresh",
     "loading": "Loading posts…",
     "more": "See more posts",
+    "more_news": "More news",
     "copyright": "The Light of the World Church | Holy Supper © Copyright 2026",
     # Reads holysupper.org's own Media Library, which lldm-fb-sync's hourly
     # sync-ig-gallery cron stocks from @holysuppertlotw. Only this template has
@@ -529,7 +559,9 @@ EN = {
     ],
 }
 
-# The English feed strings live in index5Eng.html; swap them into the script.
+# The English feed strings live in index7Eng.html; swap them into the script.
+# Anchored phrases, not bare words: a blanket " de " → " of " also rewrote the
+# Spanish code comments that travel with the block.
 EN_STRINGS = {
     "'Sin título'": "'Untitled'",
     "'Leer publicación'": "'Read post'",
@@ -540,9 +572,8 @@ EN_STRINGS = {
     "'Todavía no hay publicaciones.'": "'No posts yet.'",
     "'No se pudieron cargar las publicaciones ('": "'Could not load posts ('",
     "'No se pudieron cargar más publicaciones.'": "'Could not load more posts.'",
-    "'Mostrando '": "'Showing '",
-    "' de '": "' of '",
-    "' publicaciones · '": "' posts · '",
+    "'Mostrando ' + mostradas() + ' de ' + state.total + ' publicaciones · '":
+        "'Showing ' + mostradas() + ' of ' + state.total + ' posts · '",
     "'ver el sitio completo'": "'visit the full site'",
     "'es-ES'": "'en-US'",
 }

@@ -83,12 +83,34 @@ async function run({ file, origin, expectCat }) {
     const status = doc.getElementById('wp-news-status');
     const foot = doc.getElementById('wp-news-foot');
 
+    // The two blocks the layout is made of. Counting only .wp-news__card would
+    // still pass if the featured block never painted and everything fell into
+    // the grid, which is exactly the failure the port could introduce.
+    const main = doc.querySelectorAll('.wp-news__card--main');
+    const side = doc.querySelectorAll('.wp-news__card--side');
+    const grid = doc.querySelectorAll('.wp-news__card--grid');
+
+    // offset=4 is what stops the grid repeating the four above it.
+    const links = [...cards].map(c => c.querySelector('.wp-news__title a')?.href || '');
+    const repetidas = links.length - new Set(links).size;
+
     console.log('  request URL      :', requested[0] || '(none)');
     console.log('  relative in src  :', /categories=/.test(requested[0] || '') &&
                                         (requested[0] || '').includes(origin));
     console.log('  category sent    :', (requested[0] || '').match(/categories=(\d+)/)?.[1],
                                         `(expected ${expectCat})`);
-    console.log('  cards rendered   :', cards.length);
+    console.log('  offset sent      :', (requested[0] || '').match(/offset=(\d+)/)?.[1], '(expected 0 on first load)');
+    console.log('  cards rendered   :', cards.length,
+                `(main ${main.length}, side ${side.length}, grid ${grid.length})`);
+    console.log('  duplicate posts  :', repetidas);
+    console.log('  grid heading     :', JSON.stringify(doc.getElementById('wp-news-grid-title')?.textContent?.trim()),
+                'hidden:', doc.getElementById('wp-news-grid-title')?.hidden);
+    console.log('  palette scoped   :', /\.wp-news \{[^}]*--news-bg/.test(widget));
+
+    if (main.length !== 1 || side.length !== 3 || grid.length < 1 || repetidas > 0) {
+        console.log('  ** LAYOUT WRONG: expected 1 main + 3 side + a grid, with no repeats');
+        return 0;
+    }
     console.log('  status text      :', JSON.stringify((status.textContent || '').trim()));
     console.log('  footer text      :', JSON.stringify((foot.textContent || '').trim()));
 
@@ -143,13 +165,21 @@ async function runGallery({ file, origin }) {
 (async () => {
     let cards = 0;
     let tiles = 0;
-    let galleries = 0;
+    // Per template, not a running total: summing let a template that painted
+    // nothing pass on the strength of the other one's cards.
+    const rotos = [];
     for (const t of TEMPLATES) {
-        cards += await run(t);
-        if (t.gallery) { galleries++; tiles += await runGallery(t); }
+        const n = await run(t);
+        cards += n;
+        if (n === 0) rotos.push(t.file);
+        if (t.gallery) {
+            const g = await runGallery(t);
+            tiles += g;
+            if (g === 0) rotos.push(t.file + ' (gallery)');
+        }
     }
-    const ok = cards > 0 && (galleries === 0 || tiles > 0);
+    const ok = rotos.length === 0;
     console.log(ok ? `\nPASS — ${cards} cards and ${tiles} gallery tiles from live WP data`
-                   : `\nFAIL — ${cards} cards, ${tiles} gallery tiles`);
+                   : `\nFAIL — nothing painted in: ${rotos.join(', ')}`);
     process.exit(ok ? 0 : 1);
 })();
