@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Builds index8.html / index8Eng.html: the live pages plus a "Videos" section.
+Builds index8.html / index8Eng.html: the live pages plus a "Videos" section,
+and — on the Spanish page only — an Instagram gallery.
 
 Why a script rather than hand-editing the two files: they are ~1 MB each and
 almost entirely base64, so a hand edit is unreviewable and the Spanish and
 English copies drift apart the moment one gets a fix the other doesn't. This
-applies the same five edits to both, with only the strings and the two site
+applies the same edits to both, with only the strings and the two site
 constants differing, and it starts from the LIVE pages so the edits Ruben made
 on the WordPress side come along.
 
@@ -14,7 +15,7 @@ Run from /root/santacena-elementor:
     python3 build_index8.py                 # uses the pages saved by the fetch step
     python3 build_index8.py --fetch         # re-download both live pages first
 
-The five edits, in the order they're applied:
+The edits, in the order they're applied:
 
   1. news feed: exclude the "Video" tag, so a reel no longer shows up twice.
   2. nav: a "Videos" item (and, on the English page, the same #intro -> #about
@@ -22,6 +23,16 @@ The five edits, in the order they're applied:
   3. CSS: the section's own block, last in the document on purpose.
   4. markup: <section id="videos"> right after the news section.
   5. JS: the feed that fills it.
+  6. Instagram gallery: nav item, CSS and <section id="gallery"> after the
+     videos — Spanish page only, see below.
+
+The gallery is asymmetric on purpose, and it is the one place where "the same
+edits to both" doesn't hold. holysupper.org carries the block on its live
+homepage already, so index8Eng inherits it through the fetch; santaconvocacion-
+lldm.org does not. Adding it here to the Spanish page is what makes the two
+pages match, not what makes them differ — so EN asserts the block arrived from
+its live page instead of skipping quietly, and the build fails loudly if
+holysupper.org ever loses it.
 """
 import argparse
 import re
@@ -31,7 +42,17 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE / 'SantaCena'
-SCRATCH = Path('/tmp/claude-0/-root/9fccb81d-55be-4e51-ad14-b32b07443d18/scratchpad')
+
+# Where --fetch parks the downloaded live pages. It used to be a session
+# scratchpad under /tmp, which meant the next session found the path gone and
+# had to re-fetch before it could build at all; keeping them next to the script
+# (gitignored) makes a plain `python3 build_index8.py` work tomorrow too.
+SCRATCH = HERE / '.live'
+
+# The Instagram block, single source of truth. Read rather than copied so this
+# script can't become a fourth, silently drifting copy of it — there are
+# already three (holysupper.org, index8Eng, the EN Elementor template).
+GALLERY_SRC = Path('/root/lldm-fb-sync/gallery/holysupper-ig-gallery.html')
 
 
 class Page:
@@ -67,6 +88,31 @@ ES = Page(
     items=' videos · ',
     fullsite='ver el sitio completo',
     play_label='Video',
+
+    # Instagram. data-endpoint has to be absolute: the page is served from
+    # github.io, so a relative /wp-json path would resolve there. The photos
+    # come from santaconvocacionlldm.org's own Media Library, stocked hourly by
+    # lldm-fb-sync's sync-ig-gallery cron from @santaconvocacionlldm.
+    gallery=dict(
+        endpoint='https://santaconvocacionlldm.org/wp-json/wp/v2/media',
+        profile='https://www.instagram.com/santaconvocacionlldm/',
+        heading='Síguenos en Instagram',
+        cta='Ver en Instagram',
+        nav_item='<li><a href="#gallery" class="smoothscroll">Instagram</a></li>',
+        # The block's own strings, translated for this copy. The canonical file
+        # stays English; only what lands on the Spanish page is swapped, so
+        # holysupper's three copies are untouched.
+        strings={
+            'aria-label="Instagram post"': 'aria-label="Publicación de Instagram"',
+            'aria-label="Close"': 'aria-label="Cerrar"',
+            'aria-label="Previous"': 'aria-label="Anterior"',
+            'aria-label="Next"': 'aria-label="Siguiente"',
+            # Reachable: alt_text is empty for a caption-less photo.
+            "'Open Instagram post'": "'Abrir publicación de Instagram'",
+            # Only a fallback for a missing data-cta, translated for symmetry.
+            "'View on Instagram'": "'Ver en Instagram'",
+        },
+    ),
 )
 
 EN = Page(
@@ -99,6 +145,10 @@ EN = Page(
     items=' videos · ',
     fullsite='visit the full site',
     play_label='Video',
+
+    # No gallery edit: holysupper.org serves the block on its homepage, so the
+    # fetch already brought it in. Asserted rather than assumed — see edit 6.
+    gallery=None,
 )
 
 
@@ -689,6 +739,78 @@ JS = """
 """
 
 
+# --------------------------------------------------------------------------
+# 6. Instagram gallery
+# --------------------------------------------------------------------------
+
+# Styled from outside the block on purpose: it exposes --hsig-title-font for
+# exactly this, so restyling the heading never means editing the shared file.
+GALLERY_CSS = """
+<!-- INSTAGRAM: estilos
+================================================== -->
+<style>
+/* El titular de la galería en Cinzel, igual que el de noticias y el de
+   videos — las tres secciones se leen como una familia. La galería expone su
+   tipografía como custom property justo para esto, así que el bloque
+   compartido no se toca. */
+#gallery .hsig {
+    --hsig-title-font : "Cinzel", var(--font-1);
+}
+</style>
+"""
+
+GALLERY_MARKUP = """
+
+            <!-- instagram gallery
+            ----------------------------------------------- -->
+            <section id="gallery" class="s-gallery target-section">
+
+            <!-- Copia literal de lldm-fb-sync/gallery/holysupper-ig-gallery.html
+                 salvo el data-endpoint absoluto y los textos en español, para
+                 que las dos sigan siendo comparables. Lee la Biblioteca de
+                 Medios de santaconvocacionlldm.org, que el cron horario
+                 sync-ig-gallery llena desde @santaconvocacionlldm, y se queda
+                 escondida si ese feed está vacío o no responde. -->
+{block}
+
+            </section> <!-- end gallery -->
+"""
+
+
+def gallery_block(cfg) -> str:
+    """The shared block, re-pointed and translated for one page."""
+    if not GALLERY_SRC.exists():
+        sys.exit(f'gallery source missing: {GALLERY_SRC}\n'
+                 '(it lives in the lldm-fb-sync repo — clone or mount it first)')
+
+    text = GALLERY_SRC.read_text(encoding='utf-8')
+
+    # Drop the file's own how-to-paste comment: useful in the source, noise in
+    # a 1 MB page. It runs from the top to the first tag.
+    text = text[text.index('<section class="hsig"'):].rstrip() + '\n'
+
+    def swap(needle, replacement, what):
+        nonlocal text
+        n = text.count(needle)
+        if n != 1:
+            sys.exit(f'gallery: expected exactly 1 match for {what}, found {n}')
+        text = text.replace(needle, replacement, 1)
+
+    swap('data-endpoint="/wp-json/wp/v2/media"',
+         f'data-endpoint="{cfg["endpoint"]}"', 'data-endpoint')
+    swap('data-profile="https://www.instagram.com/holysuppertlotw/"',
+         f'data-profile="{cfg["profile"]}"', 'data-profile')
+    swap('data-heading="Follow us on Instagram"',
+         f'data-heading="{cfg["heading"]}"', 'data-heading')
+    swap('data-cta="View on Instagram"', f'data-cta="{cfg["cta"]}"', 'data-cta')
+    for needle, replacement in cfg['strings'].items():
+        swap(needle, replacement, needle)
+
+    # Indent to sit level with the sections around it.
+    return '\n'.join(('            ' + ln) if ln.strip() else ln
+                     for ln in text.splitlines())
+
+
 def js(text: str) -> str:
     """Escape a UI string for a single-quoted JS literal.
 
@@ -702,15 +824,34 @@ def js(text: str) -> str:
 
 
 def edit(page: Page) -> str:
+    if not page.live.exists():
+        sys.exit(f'{page.out}: no saved copy of the live page at {page.live}\n'
+                 'run `python3 build_index8.py --fetch` first')
     html = page.live.read_text(encoding='utf-8')
     before = len(html)
 
-    def replace_once(needle, replacement, what):
+    applied, skipped = [], []
+
+    def replace_once(needle, replacement, what, done_marker=None):
+        """Apply one edit, unless the page already carries its result.
+
+        The skip is what makes the build safe to re-run. Ruben deploys the
+        finished page back onto the site this script fetches from — as of
+        2026-08-12 santaconvocacionlldm.org's homepage *is* index8.html — so a
+        second run reads its own output back in. Without this, the second run
+        appends a second Videos nav item and a second copy of the section; with
+        it, every edit converges and the build is a no-op once the live page is
+        already current.
+        """
         nonlocal html
+        if done_marker is not None and done_marker in html:
+            skipped.append(what)
+            return
         n = html.count(needle)
         if n != 1:
             sys.exit(f'{page.out}: expected exactly 1 match for {what}, found {n}')
         html = html.replace(needle, replacement, 1)
+        applied.append(what)
 
     # 1. news feed excludes the Video tag
     replace_once(
@@ -721,18 +862,23 @@ def edit(page: Page) -> str:
         "                // la entrada de su categoría.\n"
         f"                'tags_exclude={page.video_tag}'\n            ];",
         'the news url() field list',
+        done_marker=f"'tags_exclude={page.video_tag}'",
     )
 
     # 2. nav
     if getattr(page, 'nav_fix', None):
-        replace_once(page.nav_fix[0], page.nav_fix[1], 'the News nav target (#intro -> #about)')
+        replace_once(page.nav_fix[0], page.nav_fix[1],
+                     'the News nav target (#intro -> #about)',
+                     done_marker=page.nav_fix[1])
         anchor = page.nav_fix[1]
     else:
         anchor = page.nav_after
-    replace_once(anchor, anchor + '\n                    ' + page.nav_item, 'the nav anchor item')
+    replace_once(anchor, anchor + '\n                    ' + page.nav_item,
+                 'the nav anchor item', done_marker=page.nav_item)
 
     # 3. CSS — last in the document, just before </head>
-    replace_once('</head>', CSS + '\n</head>', '</head>')
+    replace_once('</head>', CSS + '\n</head>', '</head>',
+                 done_marker='VIDEOS: estilos')
 
     # 4. markup — right after the news section
     replace_once(
@@ -740,6 +886,7 @@ def edit(page: Page) -> str:
         '            </section> <!-- end about -->\n'
         + MARKUP.format(pretitle=page.pretitle, loading=page.loading, more=page.more),
         'the end of the news section',
+        done_marker='<section id="videos"',
     )
 
     # 5. JS — before </body>, after the news script
@@ -754,15 +901,45 @@ def edit(page: Page) -> str:
             empty=js(page.empty), err=js(page.err), err_more=js(page.err_more),
         ) + '\n</body>',
         '</body>',
+        done_marker='VIDEOS DINÁMICOS',
     )
+
+    # 6. Instagram gallery. Only the Spanish page needs it built; the English
+    #    one must already carry it from its live fetch, and a missing block
+    #    there means holysupper.org lost the section — worth failing over,
+    #    because the quiet outcome is a page that silently drops a section.
+    if page.gallery:
+        replace_once(
+            page.nav_item,
+            page.nav_item + '\n                    ' + page.gallery['nav_item'],
+            'the Videos nav item (gallery goes after it)',
+            done_marker=page.gallery['nav_item'],
+        )
+        replace_once('</head>', GALLERY_CSS + '\n</head>', '</head> (gallery CSS)',
+                     done_marker='INSTAGRAM: estilos')
+        replace_once(
+            '            </section> <!-- end videos -->',
+            '            </section> <!-- end videos -->\n'
+            + GALLERY_MARKUP.format(block=gallery_block(page.gallery)),
+            'the end of the videos section',
+            done_marker='<section id="gallery"',
+        )
+    elif 'class="hsig"' not in html:
+        sys.exit(f'{page.out}: no gallery configured and the live page has no '
+                 'hsig block either — did holysupper.org lose the section?')
 
     out = REPO / page.out
     out.write_text(html, encoding='utf-8')
-    print(f'{page.out}: {before:,} -> {len(html):,} bytes (+{len(html) - before:,})')
+    delta = len(html) - before
+    print(f'{page.out}: {before:,} -> {len(html):,} bytes ({delta:+,})')
+    print(f'    applied: {", ".join(applied) if applied else "nothing — already current"}')
+    if skipped:
+        print(f'    already there: {", ".join(skipped)}')
     return html
 
 
 def fetch():
+    SCRATCH.mkdir(parents=True, exist_ok=True)
     for page, url in ((ES, ES.site + '/'), (EN, EN.site + '/')):
         subprocess.run(['curl', '-sS', '-o', str(page.live), url], check=True)
         print(f'fetched {url} -> {page.live} ({page.live.stat().st_size:,} bytes)')
