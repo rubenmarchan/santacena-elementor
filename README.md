@@ -1,27 +1,54 @@
 # SantaCena → Elementor templates
 
-Hybrid conversion of `index7.html` (ES) and `index7Eng.html` (EN) from
+Hybrid conversion of `index8.html` (ES) and `index8Eng.html` (EN) from
 `github.com/rubenmarchan/SantaCena` into importable Elementor page templates.
 
 The source page is the `SOURCE` constant at the top of `build_templates.py`.
 It moved from index5 to **index7** on 2026-08-10, when the news feed was
-relaid out the way lldmcentenario.org does it — see "News layout" below.
+relaid out the way lldmcentenario.org does it — see "News layout" below — and
+to **index8** on 2026-08-12, which keeps that layout and adds the Videos
+section.
 
-| File | Goes on | News feed |
-|---|---|---|
-| `santa-convocacion-2026-es.json` | santaconvocacionlldm.org | category **11**, 189 posts |
-| `holy-supper-2026-en.json` | holysupper.org | category **2**, 104 posts |
+| File | Goes on | News feed | Videos |
+|---|---|---|---|
+| `santa-convocacion-2026-es.json` | santaconvocacionlldm.org | category **11** | tag **19** |
+| `holy-supper-2026-en.json` | holysupper.org | category **2** | tag **9** |
 
-Each template is three sections, plus a fourth on the English one:
+Both templates are five sections, in the same order as index8:
 
 1. **Hero** — full-height background, pretitle, title, poster/video frame,
    "Video" button, social icons. Native Elementor widgets, plus one HTML widget
    that renders nothing and only carries the frame's sizing rule (see below).
 2. **News** — a heading widget plus one HTML widget carrying the live
-   `/wp-json/wp/v2/posts` feed (markup + CSS + JS).
-3. **Instagram gallery** (EN only) — one HTML widget carrying `ig-gallery.html`,
-   a 12-tile grid with a lightbox that reads `/wp-json/wp/v2/media`. See below.
-4. **Footer** — copyright line.
+   `/wp-json/wp/v2/posts` feed (markup + CSS + JS). Cream ground.
+3. **Videos** — same shape, filtered to the site's "Video" **tag** instead of a
+   category. White ground, as index8 has it.
+4. **Instagram gallery** — one HTML widget carrying `ig-gallery.html`, a 12-tile
+   grid with a lightbox that reads `/wp-json/wp/v2/media`. On **both** templates
+   since 2026-08-12, when santaconvocacionlldm.org got its own IG sync; before
+   that it was English-only because the Spanish site had no synced photos and
+   the block hides itself when the feed is empty.
+5. **Footer** — copyright line.
+
+### Two things that bite when changing the videos section
+
+**Tag ids are per-site, and only the Spanish page is read.** `build_templates.py`
+lifts everything from `SOURCE` (the ES page) and swaps `EN_STRINGS` in, so any
+id baked into that page ships to *both* sites. The news query carries a
+`tags_exclude=` so a video is not listed in both sections — left unrewritten it
+sent the Spanish tag (19) to holysupper.org, where the Video tag is 9, and every
+video appeared twice. `feed_js()` now rewrites it from `cfg["video_tag"]` and
+hard-fails if the source stops excluding tag 19. `test_feed.js` asserts the
+value per template.
+
+**The videos block reuses the news card CSS on purpose** — its JS builds
+`.wp-news__card` elements and its stylesheet only adds the video-specific parts
+(`.wp-videos .wp-news__thumb`, the play badge). It is therefore not standalone:
+inserting the videos section without the news section above it gives unstyled
+cards. Both always ship in the same template, so this only matters if someone
+deletes the news section in Elementor. It is also why `test_feed.js` matches on
+`id="wp-news"` rather than the bare string `wp-news`, which now finds two
+widgets.
 
 ## Install
 

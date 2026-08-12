@@ -17,8 +17,8 @@ const fs = require('fs');
 const { JSDOM, VirtualConsole } = require('jsdom');
 
 const TEMPLATES = [
-    { file: 'out/santa-convocacion-2026-es.json', origin: 'https://santaconvocacionlldm.org', expectCat: '11' },
-    { file: 'out/holy-supper-2026-en.json',       origin: 'https://holysupper.org',           expectCat: '2', gallery: true },
+    { file: 'out/santa-convocacion-2026-es.json', origin: 'https://santaconvocacionlldm.org', expectCat: '11', expectTag: '19', gallery: true },
+    { file: 'out/holy-supper-2026-en.json',       origin: 'https://holysupper.org',           expectCat: '2',  expectTag: '9',  gallery: true },
 ];
 
 function htmlWidget(template, marker) {
@@ -71,9 +71,12 @@ function mount(widget, origin) {
     return { dom, requested, settled: new Promise(r => setTimeout(r, 8000)) };
 }
 
-async function run({ file, origin, expectCat }) {
+async function run({ file, origin, expectCat, expectTag }) {
     console.log(`\n=== ${file} ===`);
-    const widget = htmlWidget(file, 'wp-news');
+    // Anchored on the block's own id, not the bare string "wp-news": since
+    // index8 the videos widget reuses the .wp-news__card pieces deliberately,
+    // so a substring match finds two widgets and this threw.
+    const widget = htmlWidget(file, 'id="wp-news"');
 
     const { dom, requested, settled } = mount(widget, origin);
     await settled;
@@ -107,8 +110,19 @@ async function run({ file, origin, expectCat }) {
                 'hidden:', doc.getElementById('wp-news-grid-title')?.hidden);
     console.log('  palette scoped   :', /\.wp-news \{[^}]*--news-bg/.test(widget));
 
+    // Per-site, and only ever correct on the Spanish template by accident: the
+    // builder reads the Spanish page for both, so an unrewritten tags_exclude
+    // ships the ES Video tag to the EN site and every video lists twice. The
+    // duplicate count above cannot see it — the repeats are across sections.
+    const excluded = (requested[0] || '').match(/tags_exclude=(\d+)/)?.[1];
+    console.log('  videos excluded  :', excluded, `(expected ${expectTag})`);
+
     if (main.length !== 1 || side.length !== 3 || grid.length < 1 || repetidas > 0) {
         console.log('  ** LAYOUT WRONG: expected 1 main + 3 side + a grid, with no repeats');
+        return 0;
+    }
+    if (excluded !== expectTag) {
+        console.log(`  ** WRONG EXCLUDE: news is hiding tag ${excluded}, so tag ${expectTag} videos will appear twice`);
         return 0;
     }
     console.log('  status text      :', JSON.stringify((status.textContent || '').trim()));
@@ -121,6 +135,47 @@ async function run({ file, origin, expectCat }) {
         console.log('  first card link  :', c.querySelector('.wp-news__link')?.textContent);
         console.log('  has thumbnail    :', !!c.querySelector('.wp-news__thumb img'));
         console.log('  thumb src        :', c.querySelector('.wp-news__thumb img')?.src?.slice(0, 80));
+    }
+    dom.window.close();
+    return cards.length;
+}
+
+async function runVideos({ file, origin, expectTag }) {
+    console.log(`\n=== ${file} — videos ===`);
+    const widget = htmlWidget(file, 'id="wp-videos"');
+
+    const { dom, requested, settled } = mount(widget, origin);
+    await settled;
+
+    const doc = dom.window.document;
+    // Scoped to #wp-videos on purpose: the cards carry .wp-news__card classes,
+    // so an unscoped query would silently pass on the news block's markup if
+    // the two widgets ever ended up mounted together.
+    const root = doc.getElementById('wp-videos');
+    const cards = root.querySelectorAll('.wp-news__card');
+    const url = requested[0] || '';
+
+    console.log('  request URL      :', url || '(none)');
+    console.log('  tag sent         :', url.match(/tags=(\d+)/)?.[1], `(expected ${expectTag})`);
+    console.log('  same-origin      :', url.startsWith(origin));
+    console.log('  cards rendered   :', cards.length);
+    console.log('  status text      :', JSON.stringify(doc.getElementById('wp-videos-status')?.textContent?.trim()));
+
+    if (cards.length) {
+        const c = cards[0];
+        console.log('  first card title :', c.querySelector('.wp-news__title')?.textContent?.slice(0, 60));
+        console.log('  has thumbnail    :', !!c.querySelector('.wp-news__thumb img'));
+        // The play badge is the one piece the videos block adds over a news
+        // card; without it a video renders as an ordinary article.
+        console.log('  play badge       :', !!root.querySelector('.wp-videos__play'));
+    }
+
+    // A wrong tag id still paints cards — they are just the wrong posts — so
+    // this is checked separately from whether anything rendered at all.
+    if (url && url.match(/tags=(\d+)/)?.[1] !== expectTag) {
+        console.log('  ** WRONG TAG: this feed is pulling someone else\'s posts');
+        dom.window.close();
+        return 0;
     }
     dom.window.close();
     return cards.length;
@@ -165,6 +220,7 @@ async function runGallery({ file, origin }) {
 (async () => {
     let cards = 0;
     let tiles = 0;
+    let videos = 0;
     // Per template, not a running total: summing let a template that painted
     // nothing pass on the strength of the other one's cards.
     const rotos = [];
@@ -172,6 +228,11 @@ async function runGallery({ file, origin }) {
         const n = await run(t);
         cards += n;
         if (n === 0) rotos.push(t.file);
+        if (t.expectTag) {
+            const v = await runVideos(t);
+            videos += v;
+            if (v === 0) rotos.push(t.file + ' (videos)');
+        }
         if (t.gallery) {
             const g = await runGallery(t);
             tiles += g;
@@ -179,7 +240,7 @@ async function runGallery({ file, origin }) {
         }
     }
     const ok = rotos.length === 0;
-    console.log(ok ? `\nPASS — ${cards} cards and ${tiles} gallery tiles from live WP data`
+    console.log(ok ? `\nPASS — ${cards} news cards, ${videos} video cards and ${tiles} gallery tiles from live WP data`
                    : `\nFAIL — nothing painted in: ${rotos.join(', ')}`);
     process.exit(ok ? 0 : 1);
 })();

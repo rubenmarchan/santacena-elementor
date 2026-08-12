@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Turn SantaCena index7.html / index7Eng.html into Elementor page templates.
+"""Turn SantaCena index8.html / index8Eng.html into Elementor page templates.
 
 Hybrid conversion: hero, headings, poster, button, socials and footer become
 native Elementor widgets; the WordPress news feed stays an HTML widget because
-it is JavaScript that talks to /wp-json. A template that sets `gallery` gets a
-second HTML widget carrying the Instagram grid from ig-gallery.html.
+it is JavaScript that talks to /wp-json. The videos feed is a second such
+widget, and a template that sets `gallery` gets a third carrying the Instagram
+grid from ig-gallery.html.
 
-The feed is lifted from index7 (2026-08-10), which lays the news out the way
-lldmcentenario.org does: one main post with three beside it, then the rest in
-three columns offset by four so nothing repeats. Older variants stay in the
-repo; point SOURCE back at index5.html to rebuild the single-grid version.
+The feed is lifted from index8 (2026-08-12), which keeps index7's news layout —
+one main post with three beside it, then the rest in three columns offset by
+four so nothing repeats — and adds a Videos section: the same kind of live
+/wp-json feed, filtered to the site's "Video" *tag* rather than a category.
+Older variants stay in the repo; point SOURCE back at index7.html to rebuild
+without videos, or index5.html for the single-grid news.
 
 Output: two importable .json files (Elementor > Templates > Import).
 """
@@ -26,7 +29,7 @@ OUT.mkdir(exist_ok=True)
 
 # Which page the feed's CSS and JS are lifted from. Only the Spanish page is
 # read: the English template is the same build with EN_STRINGS swapped in.
-SOURCE = "index7.html"
+SOURCE = "index8.html"
 
 # The StyleShout stylesheet sets html{font-size:62.5%} so 1rem == 10px there.
 # A normal WordPress theme leaves it at 16px, which would inflate every size in
@@ -58,6 +61,12 @@ FEED_VARS = """
     --vspace-2      : 64px;
 }
 """
+
+# The videos block reuses the same generic names (--font-2 for --news-font,
+# --vspace-1 for its margins, --color-error-content for the failure state), so
+# it needs the identical set scoped to its own root rather than a second copy
+# to keep in sync by hand.
+VIDEO_VARS = FEED_VARS.replace(".wp-news {", ".wp-videos {", 1)
 
 
 def new_id():
@@ -120,6 +129,15 @@ def feed_js(cfg):
     js = js.replace("sitio      : 'https://santaconvocacionlldm.org',", "sitio      : '',")
     js = re.sub(r"categoria  : \d+,", f"categoria  : {cfg['category']},", js)
 
+    # The news query excludes the "Video" tag so a video does not appear in both
+    # sections. That id is baked into the Spanish page and tag ids are per-site,
+    # so leaving it alone shipped tags_exclude=19 to holysupper.org — where 19
+    # is not the Video tag, and every video would have been listed twice. This
+    # only reads the Spanish page, so nothing else would have caught it.
+    if "tags_exclude=19" not in js:
+        raise SystemExit("the news feed no longer excludes tag 19; check how videos are kept out")
+    js = js.replace("tags_exclude=19", f"tags_exclude={cfg['video_tag']}")
+
     # The comment above CFG still describes the Spanish category.
     js = re.sub(
         r"\* categoria : .*",
@@ -136,6 +154,52 @@ def feed_js(cfg):
 
     # pie() links to CFG.sitio; an empty string would render href="".
     js = js.replace("a.href = CFG.sitio;", "a.href = CFG.sitio || '/';")
+    return js.strip()
+
+
+def videos_css():
+    """Pull the videos stylesheet out of the source page, same treatment as the
+    news one.
+
+    It lives in its own <style> block, so unlike the news CSS there is nothing
+    to slice off the front. What it does share is the `--news-*` palette: the
+    videos block reuses those names, and on the page they are declared on
+    `.s-videos`, the section wrapper that Elementor replaces. Moving them onto
+    `.wp-videos` is what keeps the cards from rendering unstyled.
+    """
+    css = tag_block("style", ".wp-videos {")
+
+    if ".s-videos {" not in css:
+        raise SystemExit("the source page no longer declares the palette on .s-videos")
+    css = css.replace(".s-videos {", ".wp-videos {", 1)
+
+    # Section chrome — background and vertical rhythm — is the Elementor
+    # section's job now. Left in, they would double the padding the section
+    # already applies. (--vspace-3 is used nowhere else in this block, which is
+    # why VIDEO_VARS does not need to define it.)
+    css = re.sub(r"\n\s*background-color\s*:\s*var\(--news-bg\);", "", css, count=1)
+    css = re.sub(r"\n\s*padding-(?:top|bottom)\s*:\s*var\(--vspace-3\);", "", css)
+
+    css = REM.sub(lambda m: f"{float(m.group(1)) * 10:g}px", css)
+    return VIDEO_VARS + "\n" + css.strip()
+
+
+def videos_js(cfg):
+    """Same videos script, pointed at the site it is installed on.
+
+    Note this feed selects on a *tag* (`etiqueta`), not a category as the news
+    feed does — the "Video" tag id differs per site, so it cannot be defaulted.
+    """
+    js = tag_block("script", "wp-videos-grid")
+
+    # Same-origin, for the same reason as the news feed.
+    js = js.replace("sitio      : 'https://santaconvocacionlldm.org',", "sitio      : '',")
+    js = re.sub(r"etiqueta   : \d+,", f"etiqueta   : {cfg['video_tag']},", js)
+    js = re.sub(
+        r'// id de la etiqueta "Video" en este sitio',
+        f'// id de la etiqueta "Video" en {cfg["site"]}',
+        js,
+    )
     return js.strip()
 
 
@@ -403,12 +467,12 @@ def build(cfg):
             "content_width": {"unit": "px", "size": 1720},
             "background_background": "classic",
             "background_color": "#F4F1E7",
-            # A shorter bottom when the gallery follows: that section brings
-            # its own 56px band, and the two together left a conspicuous gap
-            # between the feed's last line and the first row of photos.
+            # A shorter bottom because something always follows now: the videos
+            # section brings its own 96px top, and the two together left a
+            # conspicuous gap between the feed's last line and the videos
+            # heading. Same reasoning that applied to the gallery before.
             "padding": {"unit": "px", "top": "96", "right": "20",
-                        "bottom": "48" if cfg.get("gallery") else "96",
-                        "left": "20", "isLinked": False},
+                        "bottom": "48", "left": "20", "isLinked": False},
         },
         [
             widget("heading", {
@@ -432,6 +496,71 @@ def build(cfg):
                 "typography_letter_spacing": {"unit": "em", "size": cfg["news_spacing"]},
             }),
             widget("html", {"html": feed_html}),
+        ],
+    )
+
+    # No @import here: the news block above already pulls the same three
+    # families in, and both widgets always ship in the same template.
+    videos_html = f"""<style>
+{videos_css()}
+</style>
+
+<div id="videos">
+<div class="wp-videos" id="wp-videos">
+
+    <div class="wp-videos__grid" id="wp-videos-grid"></div>
+
+    <p class="wp-videos__status" id="wp-videos-status" role="status" aria-live="polite">
+        {cfg['videos_loading']}
+    </p>
+
+    <div class="wp-videos__actions">
+        <button type="button" class="btn btn--stroke wp-videos__more" id="wp-videos-more" hidden>
+            {cfg['videos_more']}
+        </button>
+    </div>
+
+    <p class="wp-videos__foot" id="wp-videos-foot"></p>
+
+</div>
+</div>
+
+<script>
+{videos_js(cfg)}
+</script>"""
+
+    # White ground, against the news section's cream, exactly as index8 has it
+    # (.s-videos sets --news-bg to #ffffff). The heading is a real Elementor
+    # widget here, unlike the gallery's: this feed shows a status line rather
+    # than hiding itself when empty, so the title never ends up over nothing.
+    videos = section(
+        {
+            "layout": "boxed",
+            "content_width": {"unit": "px", "size": 1720},
+            "background_background": "classic",
+            "background_color": "#ffffff",
+            "padding": {"unit": "px", "top": "96", "right": "20",
+                        "bottom": "48" if cfg.get("gallery") else "96",
+                        "left": "20", "isLinked": False},
+        },
+        [
+            widget("heading", {
+                "title": cfg["videos_title"],
+                "header_size": "h2",
+                "align": "left",
+                "title_color": "#0F121C",
+                "typography_typography": "custom",
+                # Same face and metrics as the news heading — the two sections
+                # sit directly on top of each other and have to read as a pair.
+                "typography_font_family": cfg["news_font"],
+                "typography_font_size": {"unit": "px", "size": 30},
+                "typography_font_size_mobile": {"unit": "px", "size": 25},
+                "typography_line_height": {"unit": "em", "size": 1.2},
+                "typography_font_weight": "600",
+                "typography_text_transform": cfg["news_transform"],
+                "typography_letter_spacing": {"unit": "em", "size": cfg["news_spacing"]},
+            }),
+            widget("html", {"html": videos_html}),
         ],
     )
 
@@ -479,7 +608,8 @@ def build(cfg):
         "version": "0.4",
         "title": cfg["title"],
         "type": "page",
-        "content": [s for s in (hero, news, gallery, footer) if s],
+        # Section order follows index8: hero, news (#about), videos, gallery.
+        "content": [s for s in (hero, news, videos, gallery, footer) if s],
         "page_settings": {
             "hide_title": "yes",
             "background_background": "classic",
@@ -509,8 +639,23 @@ ES = {
     "more": "Ver más publicaciones",
     # Titular del segundo bloque, el de tres columnas desplazado 4.
     "more_news": "Más noticias",
+    # La etiqueta "Video" en santaconvocacionlldm.org. Es una etiqueta, no una
+    # categoría, y su id no coincide con el del sitio en inglés.
+    "video_tag": 19,
+    "videos_title": "Videos - Santa Convocación 2026",
+    "videos_loading": "Cargando videos…",
+    "videos_more": "Ver más videos",
     "copyright": "Iglesia La Luz del Mundo | Santa Convocación © Copyright 2026",
-    # No "gallery" key on purpose — see the note on EN below.
+    # Añadida 2026-08-12: lldm-fb-sync ya sincroniza @santaconvocacionlldm a la
+    # Media Library de este sitio (24 fotos, cron al minuto 35), que era la
+    # única condición que faltaba — ver la nota en EN.
+    "gallery": {
+        "count": 12,
+        "profile": "https://www.instagram.com/santaconvocacionlldm/",
+        "heading": "Síguenos en Instagram",
+        "cta": "Ver en Instagram",
+        "title_font": '"Cinzel", Georgia, serif',
+    },
     "socials": [
         ("facebook", "https://www.facebook.com/SantaConvocacionLLDM"),
         ("x-twitter", "https://x.com/convocacionlldm"),
@@ -538,12 +683,16 @@ EN = {
     "loading": "Loading posts…",
     "more": "See more posts",
     "more_news": "More news",
+    # The "Video" tag id on holysupper.org — a different number from the
+    # Spanish site's, since tag ids are per-site.
+    "video_tag": 9,
+    "videos_title": "Videos - Holy Supper 2026",
+    "videos_loading": "Loading videos…",
+    "videos_more": "See more videos",
     "copyright": "The Light of the World Church | Holy Supper © Copyright 2026",
     # Reads holysupper.org's own Media Library, which lldm-fb-sync's hourly
-    # sync-ig-gallery cron stocks from @holysuppertlotw. Only this template has
-    # one: santaconvocacionlldm.org has no synced photos, so the same block on
-    # the Spanish page would hide itself and ship a section that never appears.
-    # Adding the same key there is all it would take once that site is synced.
+    # sync-ig-gallery cron stocks from @holysuppertlotw. The Spanish template
+    # got the same key on 2026-08-12, once its own IG sync went live.
     "gallery": {
         "count": 12,
         "profile": "https://www.instagram.com/holysuppertlotw/",
@@ -559,7 +708,7 @@ EN = {
     ],
 }
 
-# The English feed strings live in index7Eng.html; swap them into the script.
+# The English feed strings live in index8Eng.html; swap them into the script.
 # Anchored phrases, not bare words: a blanket " de " → " of " also rewrote the
 # Spanish code comments that travel with the block.
 EN_STRINGS = {
